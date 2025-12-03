@@ -1,56 +1,108 @@
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Link, Navigate } from "react-router-dom";
 import "./App.css";
-
-import Graph from "./pages/graph";
+import Home from "./pages/home";
+import Login from "./pages/login";
+import Register from "./pages/register";
+import Nutrition from "./pages/nutrition";
 import Chat from "./pages/chat";
-
-interface ApiResponse {
-  message: string;
-}
+import Sleep from "./pages/sleep";
 
 const App: React.FC = () => {
-  const [data, setData] = useState<ApiResponse | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:5000/")
-      .then((res) => res.json())
-      .then((data: ApiResponse) => setData(data))
-      .catch((err) => console.error("Erreur API :", err));
+    const checkAuth = () => {
+      const user = localStorage.getItem("user");
+      if (user) {
+        const userData = JSON.parse(user);
+        setIsLoggedIn(true);
+        setUserName(userData.first_name);
+      } else {
+        setIsLoggedIn(false);
+        setUserName("");
+      }
+    };
+
+    checkAuth();
+
+    // Listen for storage changes (in case of logout from another tab)
+    const handleStorageChange = () => {
+      checkAuth();
+    };
+
+    // Listen for custom auth event
+    const handleAuthChange = () => {
+      checkAuth();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('authChange', handleAuthChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('authChange', handleAuthChange);
+    };
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    setIsLoggedIn(false);
+    setUserName("");
+    // Dispatch custom event to update any listeners
+    window.dispatchEvent(new Event('authChange'));
+  };
 
   return (
     <Router>
-      <div className="App">
-        <header className="App-header">
-          <h1>Bien-être & Santé 🌿</h1>
-          <nav className="nav-bar">
-            <Link to="/">Accueil</Link>
-            <Link to="/graph">Graph</Link>
-            <Link to="/chat">Chat</Link>
-          </nav>
-        </header>
+      <nav className="navbar">
+        <Link to="/" className="nav-logo">
+          🌟 GoodLife
+        </Link>
+        <ul className="nav-menu">
+          {isLoggedIn ? (
+            <>
+              <li>
+                <Link to="/">Accueil</Link>
+              </li>
+              <li>
+                <Link to="/nutrition">Nutrition</Link>
+              </li>
+              <li>
+                <Link to="/sleep">Sommeil</Link>
+              </li>
+              <li>
+                <Link to="/chat">Chat IA</Link>
+              </li>
+              <li className="user-info">
+                👤 {userName}
+                <button onClick={handleLogout} className="logout-btn">
+                  Déconnexion
+                </button>
+              </li>
+            </>
+          ) : (
+            <>
+              <li>
+                <Link to="/login">Connexion</Link>
+              </li>
+              <li>
+                <Link to="/register">Inscription</Link>
+              </li>
+            </>
+          )}
+        </ul>
+      </nav>
 
-        <main className="App-main">
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <div className="home-content">
-                  <h2>Bienvenue sur votre espace Bien-être</h2>
-                  <p>
-                    Suivez votre fatigue, votre nutrition et discutez avec notre assistant santé pour
-                    améliorer votre quotidien.
-                  </p>
-                  <p>{data ? data.message : "Connexion au serveur en cours..."}</p>
-                </div>
-              }
-            />
-            <Route path="/graph" element={<Graph />} />
-            <Route path="/chat" element={<Chat />} />
-          </Routes>
-        </main>
-      </div>
+      <Routes>
+        <Route path="/" element={isLoggedIn ? <Home /> : <Navigate to="/login" />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/nutrition" element={isLoggedIn ? <Nutrition /> : <Navigate to="/login" />} />
+        <Route path="/chat" element={isLoggedIn ? <Chat /> : <Navigate to="/login" />} />
+        <Route path="/sleep" element={isLoggedIn ? <Sleep /> : <Navigate to="/login" />} />
+      </Routes>
     </Router>
   );
 };

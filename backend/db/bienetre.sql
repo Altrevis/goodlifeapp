@@ -89,6 +89,21 @@ CREATE TABLE `health_data` (
 -- --------------------------------------------------------
 
 --
+-- Structure de la table `sleep_data`
+--
+
+CREATE TABLE `sleep_data` (
+  `id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `date` date NOT NULL,
+  `duration` float NOT NULL,
+  `quality` int NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Structure de la table `users`
 --
 
@@ -109,6 +124,19 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `first_name`, `last_name`, `email`, `password`, `age`, `gender`, `created_at`) VALUES
 (1, 'Leo', 'Benazeth', 'leo@example.com', 'monMotDePasse123', 22, 'male', '2025-10-22 12:45:17');
+
+--
+-- Déchargement des données de la table `sleep_data`
+--
+
+INSERT INTO `sleep_data` (`user_id`, `date`, `duration`, `quality`) VALUES
+(1, '2025-11-27', 8.0, 9),
+(1, '2025-11-28', 7.5, 8),
+(1, '2025-11-29', 8.2, 9),
+(1, '2025-11-30', 7.0, 7),
+(1, '2025-12-01', 8.5, 9),
+(1, '2025-12-02', 7.8, 8),
+(1, '2025-12-03', 8.1, 9);
 
 --
 -- Index pour les tables déchargées
@@ -138,6 +166,13 @@ ALTER TABLE `api_sources`
 -- Index pour la table `health_data`
 --
 ALTER TABLE `health_data`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
+-- Index pour la table `sleep_data`
+--
+ALTER TABLE `sleep_data`
   ADD PRIMARY KEY (`id`),
   ADD KEY `user_id` (`user_id`);
 
@@ -177,6 +212,12 @@ ALTER TABLE `health_data`
   MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT pour la table `sleep_data`
+--
+ALTER TABLE `sleep_data`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT pour la table `users`
 --
 ALTER TABLE `users`
@@ -191,6 +232,12 @@ ALTER TABLE `users`
 --
 ALTER TABLE `activity_sessions`
   ADD CONSTRAINT `activity_sessions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Contraintes pour la table `sleep_data`
+--
+ALTER TABLE `sleep_data`
+  ADD CONSTRAINT `sleep_data_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Contraintes pour la table `ai_predictions`

@@ -1,32 +1,25 @@
 from flask import Blueprint, jsonify, request
-from flask_login import login_required
-import mysql.connector
 from mysql.connector import Error
+from .db_config import db_config
 
 sleep_bp = Blueprint('sleep', __name__)
-
-# Configuration de la base de données
-db_config = {
-    'host': 'localhost',
-    'port': 3307,
-    'user': 'leo',
-    'password': 'leo',
-    'database': 'bienetre'
-}
 
 # ---------------------------------------------------------
 # SLEEP API (MYSQL) - Score local
 # ---------------------------------------------------------
 @sleep_bp.route('/api/sleep/<int:user_id>', methods=['GET', 'POST'])
-@login_required
 def get_sleep(user_id):
+    conn = None
+    cursor = None
     try:
+        import mysql.connector
+
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor(dictionary=True)
 
         if request.method == 'GET':
             cursor.execute("""
-                SELECT duration, quality
+                SELECT date, duration, quality
                 FROM sleep_data
                 WHERE user_id = %s
                 ORDER BY date DESC

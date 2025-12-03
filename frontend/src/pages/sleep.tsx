@@ -155,10 +155,66 @@ const Sleep: React.FC = () => {
 
       <div className="sleep-graphs">
         <h2>Graphiques en temps réel</h2>
-        <div className="graph-placeholder">
-          <p>Graphiques à venir... (Chart.js à configurer)</p>
-          <p>Données actuelles : {sleepData.length} entrées</p>
-        </div>
+        {sleepData.length > 0 ? (
+          <div className="graphs-grid">
+            <div className="graph-item">
+              <h3>Durée de sommeil (heures)</h3>
+              <Line
+                data={{
+                  labels: sleepData.map(d => d.date),
+                  datasets: [
+                    {
+                      label: "Durée (h)",
+                      data: sleepData.map(d => d.duration),
+                      borderColor: "rgba(75, 192, 192, 1)",
+                      backgroundColor: "rgba(75, 192, 192, 0.2)",
+                      tension: 0.3,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  plugins: {
+                    legend: { display: true },
+                    title: { display: false, text: "" },
+                  },
+                }}
+              />
+            </div>
+
+            <div className="graph-item">
+              <h3>Qualité du sommeil</h3>
+              <Line
+                data={{
+                  labels: sleepData.map(d => d.date),
+                  datasets: [
+                    {
+                      label: "Qualité (1-10)",
+                      data: sleepData.map(d => d.quality),
+                      borderColor: "rgba(153, 102, 255, 1)",
+                      backgroundColor: "rgba(153, 102, 255, 0.2)",
+                      tension: 0.3,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  plugins: {
+                    legend: { display: true },
+                    title: { display: false, text: "" },
+                  },
+                  scales: {
+                    y: { min: 0, max: 10 },
+                  },
+                }}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="graph-placeholder">
+            <p>Aucune donnée pour le moment. Ajoutez vos premières valeurs de sommeil pour voir les graphiques en temps réel.</p>
+          </div>
+        )}
       </div>
     </div>
   );

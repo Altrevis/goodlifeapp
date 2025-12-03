@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import '../css/nutrition.css';
+import './css/nutrition.css';
 
 const Nutrition: React.FC = () => {
   const [query, setQuery] = useState('');

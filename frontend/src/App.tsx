@@ -16,13 +16,20 @@ const App: React.FC = () => {
     const checkAuth = () => {
       const user = localStorage.getItem("user");
       if (user) {
-        const userData = JSON.parse(user);
-        setIsLoggedIn(true);
-        setUserName(userData.first_name);
-      } else {
-        setIsLoggedIn(false);
-        setUserName("");
+        try {
+          const userData = JSON.parse(user);
+          if (userData && userData.first_name) {
+            setIsLoggedIn(true);
+            setUserName(userData.first_name);
+            return;
+          }
+        } catch (e) {
+          // Si le JSON est invalide (ex: "undefined"), on nettoie
+          localStorage.removeItem("user");
+        }
       }
+      setIsLoggedIn(false);
+      setUserName("");
     };
 
     checkAuth();

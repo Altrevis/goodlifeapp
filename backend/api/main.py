@@ -1,17 +1,9 @@
 from flask import Blueprint, jsonify
 import mysql.connector
 from mysql.connector import Error
+from .db_config import db_config
 
 main_bp = Blueprint('main', __name__)
-
-# Configuration de la base de données
-db_config = {
-    'host': 'localhost',
-    'port': 3307,
-    'user': 'leo',
-    'password': 'leo',
-    'database': 'bienetre'
-}
 
 # ---------------------------------------------------------
 # ROUTE TEST MYSQL

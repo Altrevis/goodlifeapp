@@ -276,9 +276,9 @@ Configurer les credentials dans `backend/api/db_config.py` :
 ```python
 db_config = {
     'host': 'localhost',
-    'port': 3307,
-    'user': 'leo',
-    'password': 'leo',
+    'port': 3306,
+    'user': 'user',
+    'password': 'password',
     'database': 'bienetre'
 }
 ```
@@ -337,16 +337,6 @@ npm start
 | **Séance 9** | 01 avr. 2026 | Frontend avancé | 📌 À venir |
 | **Séance 10** | 12 mai 2026 | Optimisation & finalisation | 📌 À venir |
 | **Séance 11** | 13 mai 2026 | Bilan & présentation | 📌 À venir |
-
----
-
-## 🧪 Tests
-
-```bash
-# Frontend
-cd frontend
-npm test
-```
 
 ---
 

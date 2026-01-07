@@ -6,7 +6,7 @@ Application web de suivi et d'analyse du bien-être personnel avec intelligence 
 
 ## 📋 Lien Trello du projet
 
-**Board Trello** : 👉 [Ydays – Sport & Bien-être avec IA]() *https://trello.com/invite/b/695e265b86283057a3a5cdde/ATTIdd55138ebb22f181bcceb16d0cedeae9298CFF2F/bien-etre-ia*
+**Board Trello** : 👉 [Ydays – Sport & Bien-être avec IA](https://trello.com/invite/b/695e265b86283057a3a5cdde/ATTIdd55138ebb22f181bcceb16d0cedeae9298CFF2F/bien-etre-ia)
 
 ---
 

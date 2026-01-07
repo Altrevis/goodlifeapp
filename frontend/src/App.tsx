@@ -7,6 +7,7 @@ import Register from "./pages/register";
 import Nutrition from "./pages/nutrition";
 import Chat from "./pages/chat";
 import Sleep from "./pages/sleep";
+import ProfilePage from "./pages/profile";
 
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -80,6 +81,9 @@ const App: React.FC = () => {
                 <Link to="/sleep">Sommeil</Link>
               </li>
               <li>
+                <Link to="/profile">Profil</Link>
+              </li>
+              <li>
                 <Link to="/chat">Chat IA</Link>
               </li>
               <li className="user-info">
@@ -109,6 +113,7 @@ const App: React.FC = () => {
         <Route path="/nutrition" element={isLoggedIn ? <Nutrition /> : <Navigate to="/login" />} />
         <Route path="/chat" element={isLoggedIn ? <Chat /> : <Navigate to="/login" />} />
         <Route path="/sleep" element={isLoggedIn ? <Sleep /> : <Navigate to="/login" />} />
+        <Route path="/profile" element={isLoggedIn ? <ProfilePage /> : <Navigate to="/login" />} />
       </Routes>
     </Router>
   );

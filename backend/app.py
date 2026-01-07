@@ -9,6 +9,7 @@ from api.sport import sport_bp
 from api.body_ext import body_ext_bp
 from api.sleep import sleep_bp
 from api.auth import auth_bp
+from api.profile import profile_bp
 from api.db_config import db_config, get_db_connection
 
 import mysql.connector
@@ -101,6 +102,7 @@ app.register_blueprint(nutrition_bp)
 app.register_blueprint(sport_bp)
 app.register_blueprint(body_ext_bp)
 app.register_blueprint(sleep_bp)
+app.register_blueprint(profile_bp)
 # Auth routes will now live under /auth (e.g. /auth/register, /auth/login)
 app.register_blueprint(auth_bp, url_prefix="/auth")
 

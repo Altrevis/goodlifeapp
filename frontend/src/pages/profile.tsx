@@ -1,0 +1,310 @@
+import React, { useState, useEffect } from 'react';
+import './css/profile.css';
+
+interface UserProfile {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  age: number | null;
+  gender: string | null;
+}
+
+interface HealthData {
+  date?: string;
+  weight?: number;
+  height?: number;
+  heart_rate?: number;
+  sleep_hours?: number;
+  calories_burned?: number;
+  steps?: number;
+}
+
+const ProfilePage: React.FC = () => {
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [healthData, setHealthData] = useState<HealthData>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  
+  // Données du formulaire
+  const [formData, setFormData] = useState<HealthData>({
+    weight: undefined,
+    height: undefined,
+    heart_rate: undefined,
+    sleep_hours: undefined,
+    calories_burned: undefined,
+    steps: undefined,
+  });
+
+  // Récupérer l'ID de l'utilisateur connecté depuis localStorage
+  const getUserId = (): number | null => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr);
+        return userData.id || null;
+      } catch (e) {
+        console.error('Erreur lors de la lecture du user depuis localStorage:', e);
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const [userId, setUserId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const id = getUserId();
+    setUserId(id);
+    
+    if (id) {
+      fetchProfile(id);
+    } else {
+      setError('Utilisateur non connecté');
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchProfile = async (id: number) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`http://localhost:5000/profile/${id}`);
+      
+      if (!response.ok) {
+        throw new Error('Erreur lors de la récupération du profil');
+      }
+
+      const data = await response.json();
+      setUser(data.user);
+      setHealthData(data.health_data || {});
+      
+      // Pré-remplir le formulaire avec les données existantes
+      if (data.health_data) {
+        setFormData({
+          weight: data.health_data.weight || undefined,
+          height: data.health_data.height || undefined,
+          heart_rate: data.health_data.heart_rate || undefined,
+          sleep_hours: data.health_data.sleep_hours || undefined,
+          calories_burned: data.health_data.calories_burned || undefined,
+          steps: data.health_data.steps || undefined,
+        });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value === '' ? undefined : Number(value)
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+
+    if (!userId) {
+      setError('Utilisateur non connecté');
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:5000/profile/${userId}/health`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la mise à jour des données');
+      }
+
+      const result = await response.json();
+      setSuccess('Données enregistrées avec succès !');
+      
+      // Recharger les données
+      if (userId) {
+        setTimeout(() => {
+          fetchProfile(userId);
+          setSuccess(null);
+        }, 2000);
+      }
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+    }
+  };
+
+  if (loading) {
+    return <div className="profile-container loading">Chargement...</div>;
+  }
+
+  if (!user) {
+    return <div className="profile-container error">Utilisateur non trouvé</div>;
+  }
+
+  return (
+    <div className="profile-container">
+      <div className="profile-header">
+        <h1>Mon Profil</h1>
+        <div className="user-info">
+          <h2>{user.first_name} {user.last_name}</h2>
+          <p className="email">{user.email}</p>
+          {user.age && <p>Âge: {user.age} ans</p>}
+          {user.gender && <p>Sexe: {user.gender === 'male' ? 'Homme' : 'Femme'}</p>}
+        </div>
+      </div>
+
+      <div className="profile-content">
+        <div className="current-data-section">
+          <h3>Mes dernières données</h3>
+          {healthData.date && (
+            <div className="health-data-grid">
+              <div className="data-card">
+                <span className="data-label">Poids</span>
+                <span className="data-value">{healthData.weight ? `${healthData.weight} kg` : '-'}</span>
+              </div>
+              <div className="data-card">
+                <span className="data-label">Taille</span>
+                <span className="data-value">{healthData.height ? `${healthData.height} cm` : '-'}</span>
+              </div>
+              <div className="data-card">
+                <span className="data-label">Fréquence cardiaque</span>
+                <span className="data-value">{healthData.heart_rate ? `${healthData.heart_rate} bpm` : '-'}</span>
+              </div>
+              <div className="data-card">
+                <span className="data-label">Heures de sommeil</span>
+                <span className="data-value">{healthData.sleep_hours ? `${healthData.sleep_hours} h` : '-'}</span>
+              </div>
+              <div className="data-card">
+                <span className="data-label">Calories brûlées</span>
+                <span className="data-value">{healthData.calories_burned ? `${healthData.calories_burned} kcal` : '-'}</span>
+              </div>
+              <div className="data-card">
+                <span className="data-label">Pas</span>
+                <span className="data-value">{healthData.steps ? healthData.steps.toLocaleString() : '-'}</span>
+              </div>
+            </div>
+          )}
+          {!healthData.date && (
+            <p className="no-data">Aucune donnée enregistrée pour le moment</p>
+          )}
+        </div>
+
+        <div className="form-section">
+          <h3>Mettre à jour mes données</h3>
+          
+          {error && <div className="alert alert-error">{error}</div>}
+          {success && <div className="alert alert-success">{success}</div>}
+
+          <form onSubmit={handleSubmit}>
+            <div className="form-grid">
+              <div className="form-group">
+                <label htmlFor="weight">Poids (kg)</label>
+                <input
+                  type="number"
+                  id="weight"
+                  name="weight"
+                  step="0.1"
+                  min="0"
+                  max="500"
+                  value={formData.weight || ''}
+                  onChange={handleInputChange}
+                  placeholder="Ex: 70.5"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="height">Taille (cm)</label>
+                <input
+                  type="number"
+                  id="height"
+                  name="height"
+                  step="0.1"
+                  min="0"
+                  max="300"
+                  value={formData.height || ''}
+                  onChange={handleInputChange}
+                  placeholder="Ex: 175"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="heart_rate">Fréquence cardiaque (bpm)</label>
+                <input
+                  type="number"
+                  id="heart_rate"
+                  name="heart_rate"
+                  min="0"
+                  max="300"
+                  value={formData.heart_rate || ''}
+                  onChange={handleInputChange}
+                  placeholder="Ex: 72"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="sleep_hours">Heures de sommeil</label>
+                <input
+                  type="number"
+                  id="sleep_hours"
+                  name="sleep_hours"
+                  step="0.1"
+                  min="0"
+                  max="24"
+                  value={formData.sleep_hours || ''}
+                  onChange={handleInputChange}
+                  placeholder="Ex: 8"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="calories_burned">Calories brûlées (kcal)</label>
+                <input
+                  type="number"
+                  id="calories_burned"
+                  name="calories_burned"
+                  step="1"
+                  min="0"
+                  max="10000"
+                  value={formData.calories_burned || ''}
+                  onChange={handleInputChange}
+                  placeholder="Ex: 2000"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="steps">Nombre de pas</label>
+                <input
+                  type="number"
+                  id="steps"
+                  name="steps"
+                  min="0"
+                  max="100000"
+                  value={formData.steps || ''}
+                  onChange={handleInputChange}
+                  placeholder="Ex: 10000"
+                />
+              </div>
+            </div>
+
+            <button type="submit" className="btn-submit">
+              Enregistrer mes données
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ProfilePage;

@@ -402,12 +402,6 @@ YNOV - Sport & Bien-être avec IA
 
 ---
 
-## 📄 Licence
-
-Projet éducatif - Ydays YNOV
-
----
-
 ## 🆘 Dépannage
 
 ### Erreur de connexion MySQL

@@ -410,8 +410,16 @@ npm test
 
 ## 👥 Équipe
 
-Projet Ydays - Promotion 2025-2026  
+**Projet Ydays - Promotion 2025-2026**  
 YNOV - Sport & Bien-être avec IA
+
+| Membre | Rôle | Responsabilités |
+|--------|------|-----------------|
+| **Leo** | Chef d'équipe + Dev Fullstack | Coordination du projet, développement backend & frontend |
+| **Alexandre** | Dev IA + Backend | Intelligence artificielle, intégration ML, backend Python |
+| **Ryan** | Dev Frontend | Interface utilisateur, React, visualisations |
+
+**Formation** : B3 Dev / B3 Infra / B3 Cyber
 
 ---
 

@@ -3,16 +3,10 @@ import mysql.connector
 from mysql.connector import Error
 from datetime import datetime
 
+from api.db_config import db_config 
+
 profile_bp = Blueprint('profile', __name__)
 
-# Configuration de la base de données
-db_config = {
-    'host': 'localhost',
-    'port': 3307,
-    'user': 'leo',
-    'password': 'leo',
-    'database': 'bienetre'
-}
 
 @profile_bp.route('/profile/<int:user_id>', methods=['GET'])
 def get_profile(user_id):

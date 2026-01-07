@@ -12,12 +12,12 @@ interface UserProfile {
 
 interface HealthData {
   date?: string;
-  weight?: number;
-  height?: number;
-  heart_rate?: number;
-  sleep_hours?: number;
-  calories_burned?: number;
-  steps?: number;
+  weight?: number | null;
+  height?: number | null;
+  heart_rate?: number | null;
+  sleep_hours?: number | null;
+  calories_burned?: number | null;
+  steps?: number | null;
 }
 
 const ProfilePage: React.FC = () => {
@@ -82,12 +82,12 @@ const ProfilePage: React.FC = () => {
       // Pré-remplir le formulaire avec les données existantes
       if (data.health_data) {
         setFormData({
-          weight: data.health_data.weight || undefined,
-          height: data.health_data.height || undefined,
-          heart_rate: data.health_data.heart_rate || undefined,
-          sleep_hours: data.health_data.sleep_hours || undefined,
-          calories_burned: data.health_data.calories_burned || undefined,
-          steps: data.health_data.steps || undefined,
+          weight: data.health_data.weight !== null ? data.health_data.weight : null,
+          height: data.health_data.height !== null ? data.health_data.height : null,
+          heart_rate: data.health_data.heart_rate !== null ? data.health_data.heart_rate : null,
+          sleep_hours: data.health_data.sleep_hours !== null ? data.health_data.sleep_hours : null,
+          calories_burned: data.health_data.calories_burned !== null ? data.health_data.calories_burned : null,
+          steps: data.health_data.steps !== null ? data.health_data.steps : null,
         });
       }
     } catch (err) {
@@ -101,7 +101,7 @@ const ProfilePage: React.FC = () => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value === '' ? undefined : Number(value)
+      [name]: value === '' ? null : Number(value)
     }));
   };
 
@@ -115,13 +115,42 @@ const ProfilePage: React.FC = () => {
       return;
     }
 
+    // Ne garder que les valeurs qui ont changé et qui ne sont pas vides/null
+    const dataToSend: any = {};
+    
+    if (formData.weight !== null && formData.weight !== undefined && formData.weight !== healthData.weight) {
+      dataToSend.weight = formData.weight;
+    }
+    if (formData.height !== null && formData.height !== undefined && formData.height !== healthData.height) {
+      dataToSend.height = formData.height;
+    }
+    if (formData.heart_rate !== null && formData.heart_rate !== undefined && formData.heart_rate !== healthData.heart_rate) {
+      dataToSend.heart_rate = formData.heart_rate;
+    }
+    if (formData.sleep_hours !== null && formData.sleep_hours !== undefined && formData.sleep_hours !== healthData.sleep_hours) {
+      dataToSend.sleep_hours = formData.sleep_hours;
+    }
+    if (formData.calories_burned !== null && formData.calories_burned !== undefined && formData.calories_burned !== healthData.calories_burned) {
+      dataToSend.calories_burned = formData.calories_burned;
+    }
+    if (formData.steps !== null && formData.steps !== undefined && formData.steps !== healthData.steps) {
+      dataToSend.steps = formData.steps;
+    }
+
+    // Si aucune donnée n'a changé, ne pas faire de requête
+    if (Object.keys(dataToSend).length === 0) {
+      setSuccess('Aucune modification détectée');
+      setTimeout(() => setSuccess(null), 2000);
+      return;
+    }
+
     try {
       const response = await fetch(`http://localhost:5000/profile/${userId}/health`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(dataToSend),
       });
 
       if (!response.ok) {
@@ -217,7 +246,7 @@ const ProfilePage: React.FC = () => {
                   step="0.1"
                   min="0"
                   max="500"
-                  value={formData.weight || ''}
+                  value={formData.weight !== null ? formData.weight : ''}
                   onChange={handleInputChange}
                   placeholder="Ex: 70.5"
                 />
@@ -232,7 +261,7 @@ const ProfilePage: React.FC = () => {
                   step="0.1"
                   min="0"
                   max="300"
-                  value={formData.height || ''}
+                  value={formData.height !== null ? formData.height : ''}
                   onChange={handleInputChange}
                   placeholder="Ex: 175"
                 />
@@ -246,7 +275,7 @@ const ProfilePage: React.FC = () => {
                   name="heart_rate"
                   min="0"
                   max="300"
-                  value={formData.heart_rate || ''}
+                  value={formData.heart_rate !== null ? formData.heart_rate : ''}
                   onChange={handleInputChange}
                   placeholder="Ex: 72"
                 />
@@ -261,7 +290,7 @@ const ProfilePage: React.FC = () => {
                   step="0.1"
                   min="0"
                   max="24"
-                  value={formData.sleep_hours || ''}
+                  value={formData.sleep_hours !== null ? formData.sleep_hours : ''}
                   onChange={handleInputChange}
                   placeholder="Ex: 8"
                 />
@@ -276,7 +305,7 @@ const ProfilePage: React.FC = () => {
                   step="1"
                   min="0"
                   max="10000"
-                  value={formData.calories_burned || ''}
+                  value={formData.calories_burned !== null ? formData.calories_burned : ''}
                   onChange={handleInputChange}
                   placeholder="Ex: 2000"
                 />
@@ -290,7 +319,7 @@ const ProfilePage: React.FC = () => {
                   name="steps"
                   min="0"
                   max="100000"
-                  value={formData.steps || ''}
+                  value={formData.steps !== null ? formData.steps : ''}
                   onChange={handleInputChange}
                   placeholder="Ex: 10000"
                 />

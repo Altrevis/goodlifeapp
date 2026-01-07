@@ -62,39 +62,99 @@ def get_profile(user_id):
 @profile_bp.route('/profile/<int:user_id>/health', methods=['POST'])
 def update_health_data(user_id):
     """Met à jour ou ajoute les données de santé de l'utilisateur"""
+    conn = None
+    cursor = None
     try:
         data = request.json
         
         conn = mysql.connector.connect(**db_config)
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
         
         # Vérifier si l'utilisateur existe
         cursor.execute("SELECT id FROM users WHERE id = %s", (user_id,))
-        if not cursor.fetchone():
+        user_exists = cursor.fetchone()
+        if not user_exists:
             return jsonify({"error": "Utilisateur non trouvé"}), 404
         
         # Préparer les données
         date = data.get('date', datetime.now().strftime('%Y-%m-%d'))
-        weight = data.get('weight')
-        height = data.get('height')
-        heart_rate = data.get('heart_rate')
-        sleep_hours = data.get('sleep_hours')
-        calories_burned = data.get('calories_burned')
-        steps = data.get('steps')
         
-        # Insérer les nouvelles données de santé
+        # Vérifier si des données existent déjà pour cette date
         cursor.execute("""
-            INSERT INTO health_data 
-            (user_id, date, weight, height, heart_rate, sleep_hours, calories_burned, steps)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """, (user_id, date, weight, height, heart_rate, sleep_hours, calories_burned, steps))
+            SELECT id FROM health_data 
+            WHERE user_id = %s AND date = %s
+        """, (user_id, date))
         
-        conn.commit()
+        existing_record = cursor.fetchone()
+        cursor.fetchall()  # Consommer tous les résultats restants
         
-        return jsonify({
-            "success": True,
-            "message": "Données de santé enregistrées avec succès"
-        }), 201
+        if existing_record:
+            # Mise à jour : construire la requête dynamiquement pour ne mettre à jour que les champs fournis
+            fields = []
+            values = []
+            
+            # Vérifier chaque champ s'il est présent dans la requête (pas de vérification de None)
+            if 'weight' in data:
+                fields.append("weight = %s")
+                values.append(data['weight'])
+            
+            if 'height' in data:
+                fields.append("height = %s")
+                values.append(data['height'])
+            
+            if 'heart_rate' in data:
+                fields.append("heart_rate = %s")
+                values.append(data['heart_rate'])
+            
+            if 'sleep_hours' in data:
+                fields.append("sleep_hours = %s")
+                values.append(data['sleep_hours'])
+            
+            if 'calories_burned' in data:
+                fields.append("calories_burned = %s")
+                values.append(data['calories_burned'])
+            
+            if 'steps' in data:
+                fields.append("steps = %s")
+                values.append(data['steps'])
+            
+            if not fields:
+                return jsonify({"error": "Aucune donnée à mettre à jour"}), 400
+            
+            # Ajouter les conditions WHERE
+            values.extend([user_id, date])
+            query = f"UPDATE health_data SET {', '.join(fields)} WHERE user_id = %s AND date = %s"
+            
+            cursor.execute(query, values)
+            conn.commit()
+            
+            return jsonify({
+                "success": True,
+                "message": "Données de santé mises à jour avec succès",
+                "action": "update"
+            }), 200
+        else:
+            # Insertion : créer une nouvelle entrée
+            weight = data.get('weight')
+            height = data.get('height')
+            heart_rate = data.get('heart_rate')
+            sleep_hours = data.get('sleep_hours')
+            calories_burned = data.get('calories_burned')
+            steps = data.get('steps')
+            
+            cursor.execute("""
+                INSERT INTO health_data 
+                (user_id, date, weight, height, heart_rate, sleep_hours, calories_burned, steps)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (user_id, date, weight, height, heart_rate, sleep_hours, calories_burned, steps))
+            
+            conn.commit()
+            
+            return jsonify({
+                "success": True,
+                "message": "Données de santé enregistrées avec succès",
+                "action": "insert"
+            }), 201
 
     except Error as e:
         return jsonify({"error": str(e)}), 500

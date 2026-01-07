@@ -228,28 +228,17 @@ frontend/
 
 ### 💬 Chat avec IA (LM Studio)
 
-| Méthode | Route | Description |
-|---------|-------|-------------|
-| `GET` | `/messages` | Récupère l'historique complet des messages |
-| `POST` | `/messages` | Enregistre un message (user/assistant/system) |
-| `POST` | `/api/chat` | Proxy vers LM Studio pour génération de réponse |
-
-**Configuration** : LM Studio doit être actif sur `http://10.37.7.211:1234`
-
----
-
-### 🏠 Test de connexion
-
-| Méthode | Route | Description |
-|---------|-------|-------------|
-| `GET` | `/` | Test de connexion à la base de données MySQL |
+**Fonctionnalités** :
+- 🤖 Assistant conversationnel intelligent
+- 📥 Récupération des données après que l'utilisateur a tout renseigné
+- 💾 Historique des conversations persistant en base de données
 
 ---
 
 ## 🗄️ Base de données MySQL
 
 **Nom de la base** : `bienetre`  
-**Port** : `3307`
+**Port** : `3306`
 
 ### Tables principales
 

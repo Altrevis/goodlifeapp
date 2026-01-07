@@ -7,6 +7,13 @@ type Message = {
   created_at?: string;
 };
 
+type StoredUser = {
+  id: number;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+};
+
 // URL du backend Flask qui joue le proxy avec LM Studio
 const BACKEND_URL = "http://127.0.0.1:5000";
 
@@ -14,12 +21,31 @@ const Chat: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [userId, setUserId] = useState<number | null>(null);
+
+  const loadUserId = () => {
+    try {
+      const raw = localStorage.getItem("user");
+      if (!raw) return null;
+      const parsed: StoredUser = JSON.parse(raw);
+      return parsed?.id ?? null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    setUserId(loadUserId());
+  }, []);
 
   // Chargement de l'historique des messages au montage
   useEffect(() => {
     const fetchMessages = async () => {
+      const uid = loadUserId();
+      setUserId(uid);
+      if (!uid) return;
       try {
-        const response = await fetch(`${BACKEND_URL}/messages`);
+        const response = await fetch(`${BACKEND_URL}/messages?user_id=${uid}`);
         if (!response.ok) {
           throw new Error(`Erreur API: ${response.statusText}`);
         }
@@ -42,6 +68,7 @@ const Chat: React.FC = () => {
   // Persistance d'un message côté backend
   const persistMessage = async (message: Message) => {
     try {
+      if (!userId) return;
       await fetch(`${BACKEND_URL}/messages`, {
         method: "POST",
         headers: {
@@ -50,6 +77,7 @@ const Chat: React.FC = () => {
         body: JSON.stringify({
           role: message.role,
           content: message.content,
+          user_id: userId,
         }),
       });
     } catch (error) {
@@ -57,8 +85,45 @@ const Chat: React.FC = () => {
     }
   };
 
+  const sanitizeAssistantReply = (text: string) => {
+    let cleaned = text;
+
+    // Nettoyage Markdown de base
+    cleaned = cleaned.replace(/`{3}[\s\S]*?`{3}/g, " "); // blocs code
+    cleaned = cleaned.replace(/`([^`]+)`/g, "$1"); // inline code
+    cleaned = cleaned.replace(/[*_]{1,3}([^*_]+)[*_]{1,3}/g, "$1"); // italique/gras
+    cleaned = cleaned.replace(/^#{1,6}\s*/gm, ""); // titres
+
+    // Supprimer lignes de tableaux Markdown
+    cleaned = cleaned.replace(/^\s*\|.*\|\s*$/gm, "");
+
+    // Séparateurs type "---" ou " -- "
+    cleaned = cleaned.replace(/--+/g, "\n\n");
+
+    // Listes -> puces lisibles
+    cleaned = cleaned.replace(/^\s*[-*•]\s+/gm, "• ");
+
+    // Normaliser les sauts de ligne et aérer
+    cleaned = cleaned.replace(/\r\n/g, "\n");
+    cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
+    cleaned = cleaned.replace(/[ \t]+\n/g, "\n"); // trim fin de ligne
+
+    // Si le texte est une longue ligne sans retours, on insère des sauts aux séparateurs.
+    // Sections numérotées / blocs importants
+    cleaned = cleaned.replace(/(\d️⃣)/g, "\n\n$1");
+    cleaned = cleaned.replace(/(✅|🚨|📌|💡)/g, "\n\n$1");
+    cleaned = cleaned.replace(/(\.)(\s+)([A-ZÉÈÎÏÔÛÂÀ])/g, "$1\n$3"); // phrase suivante en majuscule
+    cleaned = cleaned.replace(/(:)(\s+)/g, "$1\n"); // après deux-points
+
+    return cleaned.trim();
+  };
+
   const handleSend = async () => {
     if (!input.trim()) return;
+    if (!userId) {
+      alert("Veuillez vous connecter avant d'utiliser le chat.");
+      return;
+    }
 
     const userMessage: Message = { role: "user", content: input };
     const nextMessages = [...messages, userMessage];
@@ -88,10 +153,11 @@ const Chat: React.FC = () => {
         data.choices?.[0]?.message?.content ??
         data.output_text ??
         "(pas de réponse)";
+      const cleanedReply = sanitizeAssistantReply(reply);
 
       const assistantMessage: Message = {
         role: "assistant",
-        content: reply.trim(),
+        content: cleanedReply,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -109,14 +175,31 @@ const Chat: React.FC = () => {
     }
   };
 
+  const renderMessageContent = (content: string) => {
+    const paragraphs = content.split(/\n{2,}/);
+    return paragraphs.map((para, idx) => {
+      const lines = para.split("\n");
+      return (
+        <p key={idx}>
+          {lines.map((line, i) => (
+            <React.Fragment key={i}>
+              {line}
+              {i < lines.length - 1 && <br />}
+            </React.Fragment>
+          ))}
+        </p>
+      );
+    });
+  };
+
   return (
     <div className="chat-container">
       <h1>Chat Santé 💬</h1>
       <div className="chat-box">
         {messages.map((msg, index) => (
           <div key={index} className="chat-message">
-            <strong>{msg.role === "user" ? "Vous" : "Assistant"}:</strong>{" "}
-            {msg.content}
+            <strong>{msg.role === "user" ? "Vous" : "Assistant"}:</strong>
+            {renderMessageContent(msg.content)}
           </div>
         ))}
         {isLoading && <div className="chat-message">Assistant: ...</div>}

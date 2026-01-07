@@ -231,7 +231,9 @@ frontend/
 **Fonctionnalités** :
 - 🤖 Assistant conversationnel intelligent
 - 📥 Récupération des données après que l'utilisateur a tout renseigné
-- 💾 Historique des conversations persistant en base de données
+- 💾 Historique des conversations persistant en base de données et séparé par utilisateur
+- 🧹 Nettoyage du Markdown brut retourné par le modèle
+- 📑 Affichage avec paragraphes et retours à la ligne pour une meilleure lisibilité
 
 ---
 

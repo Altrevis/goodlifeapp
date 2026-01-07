@@ -89,6 +89,21 @@ CREATE TABLE `health_data` (
 -- --------------------------------------------------------
 
 --
+-- Structure de la table `messages`
+-- (historique du chat IA par utilisateur)
+--
+
+CREATE TABLE `messages` (
+  `id` int NOT NULL,
+  `user_id` int DEFAULT NULL,
+  `role` enum('user','assistant','system') NOT NULL,
+  `content` text NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Structure de la table `sleep_data`
 --
 
@@ -170,6 +185,13 @@ ALTER TABLE `health_data`
   ADD KEY `user_id` (`user_id`);
 
 --
+-- Index pour la table `messages`
+--
+ALTER TABLE `messages`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_messages_user_id` (`user_id`);
+
+--
 -- Index pour la table `sleep_data`
 --
 ALTER TABLE `sleep_data`
@@ -212,6 +234,12 @@ ALTER TABLE `health_data`
   MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT pour la table `messages`
+--
+ALTER TABLE `messages`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT pour la table `sleep_data`
 --
 ALTER TABLE `sleep_data`
@@ -250,6 +278,12 @@ ALTER TABLE `ai_predictions`
 --
 ALTER TABLE `health_data`
   ADD CONSTRAINT `health_data_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Contraintes pour la table `messages`
+--
+ALTER TABLE `messages`
+  ADD CONSTRAINT `messages_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

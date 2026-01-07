@@ -37,7 +37,7 @@ def close_resources(cursor, connection):
 
 
 def ensure_messages_table():
-    """Crée la table messages si elle n'existe pas (pour l'historique du chat)."""
+    """Crée/ajuste la table messages pour stocker l'historique du chat par utilisateur."""
     connection = None
     cursor = None
     try:
@@ -48,12 +48,20 @@ def ensure_messages_table():
             """
             CREATE TABLE IF NOT EXISTS messages (
                 id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NULL,
                 role ENUM('user','assistant','system') NOT NULL,
                 content TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_user_id (user_id)
             ) ENGINE=InnoDB;
             """
         )
+        # Si la table existe déjà sans colonne user_id, on tente de l'ajouter.
+        try:
+            cursor.execute("ALTER TABLE messages ADD COLUMN user_id INT NULL")
+            cursor.execute("CREATE INDEX idx_messages_user_id ON messages(user_id)")
+        except Exception:
+            pass
     except Error as e:
         # Utilise le logger Flask si disponible
         try:
@@ -103,14 +111,24 @@ app.register_blueprint(auth_bp, url_prefix="/auth")
 
 @app.route("/messages", methods=["GET"])
 def list_messages():
-    """Retourne l'historique complet des messages du chat."""
+    """Retourne l'historique des messages filtré par utilisateur."""
     connection = None
     cursor = None
     try:
-        connection = mysql.connector.connect(**db_config)
+        user_id = request.args.get("user_id", type=int)
+        if not user_id:
+            return jsonify({"error": "user_id requis"}), 400
+
+        connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
         cursor.execute(
-            "SELECT id, role, content, created_at FROM messages ORDER BY id ASC;"
+            """
+            SELECT id, user_id, role, content, created_at
+            FROM messages
+            WHERE user_id = %s
+            ORDER BY id ASC;
+            """,
+            (user_id,),
         )
         return jsonify(cursor.fetchall())
     except Error as e:
@@ -121,22 +139,23 @@ def list_messages():
 
 @app.route("/messages", methods=["POST"])
 def add_message():
-    """Enregistre un message (user / assistant / system) dans la base."""
+    """Enregistre un message (user / assistant / system) dans la base pour un utilisateur."""
     payload = request.get_json(silent=True) or {}
     role = payload.get("role")
     content = payload.get("content")
+    user_id = payload.get("user_id")
 
-    if role not in {"user", "assistant", "system"} or not content:
+    if role not in {"user", "assistant", "system"} or not content or not user_id:
         return jsonify({"error": "Invalid payload"}), 400
 
     connection = None
     cursor = None
     try:
-        connection = mysql.connector.connect(**db_config)
+        connection = get_db_connection()
         cursor = connection.cursor()
         cursor.execute(
-            "INSERT INTO messages (role, content) VALUES (%s, %s);",
-            (role, content),
+            "INSERT INTO messages (user_id, role, content) VALUES (%s, %s, %s);",
+            (user_id, role, content),
         )
         connection.commit()
         return jsonify({"status": "saved"}), 201

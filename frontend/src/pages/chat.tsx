@@ -50,13 +50,92 @@ const Chat: React.FC = () => {
           throw new Error(`Erreur API: ${response.statusText}`);
         }
         const data: Message[] = await response.json();
-        setMessages(
-          data.map(({ role, content, created_at }) => ({
-            role,
-            content,
-            created_at,
-          }))
-        );
+        const loadedMessages = data.map(({ role, content, created_at }) => ({
+          role,
+          content,
+          created_at,
+        }));
+        setMessages(loadedMessages);
+        
+        // Si c'est la première conversation (pas de messages), envoyer automatiquement "Bonjour"
+        // pour déclencher la récupération des données et la réponse de confirmation de l'IA
+        if (loadedMessages.length === 0) {
+          setIsLoading(true);
+          try {
+            const initResponse = await fetch(`${BACKEND_URL}/api/chat`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "mistralai/ministral-3-3b",
+                user_id: uid,
+                messages: [{
+                  role: "user",
+                  content: "Bonjour"
+                }],
+              }),
+            });
+            
+            if (initResponse.ok) {
+              const initData = await initResponse.json();
+              const reply = initData.choices?.[0]?.message?.content ?? 
+                           initData.output_text ?? 
+                           "";
+              
+              if (reply) {
+                const cleanedReply = sanitizeAssistantReply(reply);
+                
+                // Sauvegarder le message utilisateur "Bonjour"
+                const userMessage: Message = { role: "user", content: "Bonjour" };
+                await fetch(`${BACKEND_URL}/messages`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    role: "user",
+                    content: "Bonjour",
+                    user_id: uid,
+                  }),
+                });
+                
+                // Sauvegarder la réponse de l'IA
+                const assistantMessage: Message = {
+                  role: "assistant",
+                  content: cleanedReply,
+                };
+                await fetch(`${BACKEND_URL}/messages`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    role: "assistant",
+                    content: cleanedReply,
+                    user_id: uid,
+                  }),
+                });
+                
+                // Récupérer tous les messages (y compris le message système)
+                const updatedResponse = await fetch(`${BACKEND_URL}/messages?user_id=${uid}`);
+                if (updatedResponse.ok) {
+                  const updatedData: Message[] = await updatedResponse.json();
+                  const updatedMessages = updatedData.map(({ role, content, created_at }) => ({
+                    role,
+                    content,
+                    created_at,
+                  }));
+                  setMessages(updatedMessages);
+                }
+              }
+            }
+          } catch (error) {
+            console.error("Erreur lors de l'initialisation:", error);
+          } finally {
+            setIsLoading(false);
+          }
+        }
       } catch (error) {
         console.error("Impossible de charger l'historique :", error);
       }
@@ -141,6 +220,7 @@ const Chat: React.FC = () => {
         },
         body: JSON.stringify({
           model: "mistralai/ministral-3-3b",
+          user_id: userId,
           messages: nextMessages.map(({ role, content }) => ({
             role,
             content,
@@ -196,12 +276,14 @@ const Chat: React.FC = () => {
     <div className="chat-container">
       <h1>Chat Santé 💬</h1>
       <div className="chat-box">
-        {messages.map((msg, index) => (
-          <div key={index} className="chat-message">
-            <strong>{msg.role === "user" ? "Vous" : "Assistant"}:</strong>
-            {renderMessageContent(msg.content)}
-          </div>
-        ))}
+        {messages
+          .filter((msg) => msg.role !== "system") // Ne pas afficher les messages système
+          .map((msg, index) => (
+            <div key={index} className="chat-message">
+              <strong>{msg.role === "user" ? "Vous" : "Assistant"}:</strong>
+              {renderMessageContent(msg.content)}
+            </div>
+          ))}
         {isLoading && <div className="chat-message">Assistant: ...</div>}
       </div>
       <div className="chat-input">

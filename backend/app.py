@@ -171,16 +171,168 @@ def add_message():
         close_resources(cursor, connection)
 
 
+def get_user_health_data(user_id):
+    """Récupère les données de santé de l'utilisateur depuis la base de données."""
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        
+        # Récupérer les informations de base de l'utilisateur
+        cursor.execute("""
+            SELECT id, first_name, last_name, email, age, gender 
+            FROM users 
+            WHERE id = %s
+        """, (user_id,))
+        user = cursor.fetchone()
+        
+        if not user:
+            return None
+        
+        # Récupérer les dernières données de santé
+        cursor.execute("""
+            SELECT date, weight, height, heart_rate, sleep_hours, calories_burned, steps 
+            FROM health_data 
+            WHERE user_id = %s 
+            ORDER BY date DESC 
+            LIMIT 1
+        """, (user_id,))
+        health_data = cursor.fetchone()
+        
+        return {
+            "user": user,
+            "health_data": health_data if health_data else {}
+        }
+    except Error as e:
+        print(f"Error fetching user health data: {e}")
+        return None
+    finally:
+        close_resources(cursor, connection)
+
+
+def has_system_message_with_data(user_id):
+    """Vérifie si un message système avec les données utilisateur existe déjà."""
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT COUNT(*) as count
+            FROM messages
+            WHERE user_id = %s AND role = 'system' 
+            AND content LIKE '%J\'ai bien récupéré vos données%'
+        """, (user_id,))
+        result = cursor.fetchone()
+        return result and result['count'] > 0
+    except Error as e:
+        print(f"Error checking system message: {e}")
+        return False
+    finally:
+        close_resources(cursor, connection)
+
+
 @app.route("/api/chat", methods=["POST"])
 def proxy_chat():
     """
     Proxy pour les requêtes vers l'API LM Studio, afin d'éviter les problèmes CORS
-    côté front-end.
+    côté front-end. Récupère automatiquement les données utilisateur et les inclut dans le contexte.
     """
     try:
         payload = request.get_json()
         if not payload:
             return jsonify({"error": "No payload provided"}), 400
+
+        user_id = payload.get("user_id")
+        messages = payload.get("messages", [])
+        
+        # Si un user_id est fourni, récupérer les données utilisateur
+        if user_id:
+            user_data = get_user_health_data(user_id)
+            
+            if user_data:
+                # Construire le message système avec les données utilisateur
+                user_info = user_data["user"]
+                health_info = user_data["health_data"]
+                
+                # Construire le message système avec les données utilisateur
+                # Format simple pour que l'IA puisse les utiliser facilement
+                system_content_parts = [
+                    "Vous êtes un assistant santé personnalisé. Voici les données de l'utilisateur :"
+                ]
+                
+                # Informations de base
+                if user_info.get("first_name"):
+                    system_content_parts.append(f"Prénom: {user_info['first_name']}")
+                if user_info.get("last_name"):
+                    system_content_parts.append(f"Nom: {user_info['last_name']}")
+                if user_info.get("age"):
+                    system_content_parts.append(f"Âge: {user_info['age']} ans")
+                if user_info.get("gender"):
+                    system_content_parts.append(f"Genre: {user_info['gender']}")
+                
+                # Données de santé
+                weight_value = None
+                if health_info:
+                    if health_info.get("weight"):
+                        weight_value = health_info['weight']
+                        system_content_parts.append(f"Poids: {weight_value} kg")
+                    if health_info.get("height"):
+                        system_content_parts.append(f"Taille: {health_info['height']} cm")
+                    if health_info.get("heart_rate"):
+                        system_content_parts.append(f"Fréquence cardiaque: {health_info['heart_rate']} bpm")
+                    if health_info.get("sleep_hours"):
+                        system_content_parts.append(f"Heures de sommeil: {health_info['sleep_hours']} h")
+                    if health_info.get("steps"):
+                        system_content_parts.append(f"Pas: {health_info['steps']}")
+                    if health_info.get("calories_burned"):
+                        system_content_parts.append(f"Calories brûlées: {health_info['calories_burned']} kcal")
+                
+                # Ajouter une instruction pour que l'IA confirme la récupération des données
+                if weight_value:
+                    system_content_parts.append(f"\nINSTRUCTION IMPORTANTE: Lorsque l'utilisateur vous salue ou commence une conversation, vous DEVEZ TOUJOURS commencer votre réponse par confirmer que vous avez bien récupéré ses données en mentionnant son poids. Répondez exactement dans ce format: 'J'ai bien récupéré vos données ({weight_value} kg).' Ensuite, vous pouvez continuer normalement la conversation.")
+                else:
+                    system_content_parts.append("\nINSTRUCTION IMPORTANTE: Lorsque l'utilisateur vous salue ou commence une conversation, vous DEVEZ TOUJOURS commencer votre réponse par confirmer que vous avez bien récupéré ses données.")
+                
+                system_message = "\n".join(system_content_parts)
+                
+                # Vérifier si c'est la première conversation (pas de messages système avec données)
+                is_first_conversation = not has_system_message_with_data(user_id)
+                
+                # Toujours ajouter le message système au début des messages envoyés à LM Studio
+                # pour s'assurer que l'IA a toujours les données à jour
+                # On vérifie si le premier message est déjà un message système
+                if not (messages and messages[0].get("role") == "system"):
+                    messages.insert(0, {
+                        "role": "system",
+                        "content": system_message
+                    })
+                else:
+                    # Si le premier message est déjà un message système, on le remplace par le nouveau
+                    # pour s'assurer que les données sont à jour
+                    messages[0] = {
+                        "role": "system",
+                        "content": system_message
+                    }
+                
+                # Sauvegarder le message système dans la base de données seulement la première fois
+                if is_first_conversation:
+                    try:
+                        connection = get_db_connection()
+                        cursor = connection.cursor()
+                        cursor.execute(
+                            "INSERT INTO messages (user_id, role, content) VALUES (%s, %s, %s);",
+                            (user_id, "system", system_message),
+                        )
+                        connection.commit()
+                    except Error as e:
+                        print(f"Error saving system message: {e}")
+                    finally:
+                        close_resources(cursor, connection)
+                
+                # Mettre à jour le payload avec les messages enrichis
+                payload["messages"] = messages
 
         # Transfert de la requête vers LM Studio
         response = requests.post(

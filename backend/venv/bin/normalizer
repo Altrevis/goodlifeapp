@@ -1,6 +1,4 @@
-#!/bin/sh
-'''exec' "/home/leo/Bureau/app ydays/goodlifeapp/backend/venv/bin/python3" "$0" "$@"
-' '''
+#!/home/alexandre/goodlifeapp/backend/venv/bin/python3
 import sys
 from charset_normalizer.cli import cli_detect
 if __name__ == '__main__':

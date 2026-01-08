@@ -2,10 +2,142 @@ from flask import Blueprint, jsonify, request
 import mysql.connector
 from mysql.connector import Error
 from datetime import datetime
+import requests
 
 from api.db_config import db_config 
 
 profile_bp = Blueprint('profile', __name__)
+
+# Configuration API Ninjas pour les calories
+API_NINJAS_BASE_URL = "https://api.api-ninjas.com/v1"
+API_NINJAS_KEY = "DbNQ6NpBp8Sc3Ukvk+wsqA==9oxJRkGCmNnFT5ai"
+
+# Dictionnaire des activités sportives (français -> anglais pour l'API)
+ACTIVITIES_FR_TO_EN = {
+    # Sports de course et marche
+    "Course à pied": "running",
+    "Jogging": "jogging",
+    "Marche": "walking",
+    "Marche rapide": "walking",
+    
+    # Sports aquatiques
+    "Natation": "swimming",
+    "Aquagym": "water aerobics",
+    "Aqua aérobic": "aqua aerobics",
+    "Aviron": "rowing",
+    "Kayak": "kayaking",
+    "Canoë": "canoeing",
+    "Surf": "surfing",
+    "Paddle": "paddleboarding",
+    
+    # Cyclisme
+    "Vélo": "cycling",
+    "Cyclisme": "biking",
+    "Vélo d'appartement": "stationary bike",
+    
+    # Sports de fitness
+    "Randonnée": "hiking",
+    "Danse": "dancing",
+    "Aérobic": "aerobics",
+    "Yoga": "yoga",
+    "Pilates": "pilates",
+    "Étirements": "stretching",
+    "Zumba": "zumba",
+    "Step": "step aerobics",
+    
+    # Musculation
+    "Musculation": "weightlifting",
+    "Renforcement musculaire": "strength training",
+    "Entraînement résistance": "resistance training",
+    "Pompes": "push-ups",
+    "Abdominaux": "sit-ups",
+    "Tractions": "pull-ups",
+    "Squats": "squats",
+    "Fentes": "lunges",
+    "Gainage": "planks",
+    "CrossFit": "crossfit",
+    "Circuit training": "circuit training",
+    "Entraînement fractionné": "interval training",
+    "HIIT": "HIIT",
+    
+    # Appareils de fitness
+    "Vélo elliptique": "elliptical",
+    "Tapis de course": "treadmill",
+    "Montée d'escaliers": "stair climbing",
+    
+    # Sports collectifs
+    "Basketball": "basketball",
+    "Football américain": "football",
+    "Football": "soccer",
+    "Tennis": "tennis",
+    "Volleyball": "volleyball",
+    "Baseball": "baseball",
+    
+    # Sports de combat
+    "Boxe": "boxing",
+    "Arts martiaux": "martial arts",
+    "Karaté": "karate",
+    "Judo": "judo",
+    "Taekwondo": "taekwondo",
+    
+    # Sports d'hiver
+    "Ski": "skiing",
+    "Snowboard": "snowboarding",
+    "Patinage": "skating",
+    "Patinage sur glace": "ice skating",
+    "Roller": "roller skating",
+    
+    # Sports de raquette
+    "Golf": "golf",
+    "Bowling": "bowling",
+    "Badminton": "badminton",
+    "Tennis de table": "table tennis",
+    "Squash": "squash",
+    "Racquetball": "racquetball",
+    
+    # Escalade
+    "Escalade": "rock climbing",
+    "Alpinisme": "mountaineering",
+    "Rappel": "rappelling",
+    
+    # Corde à sauter
+    "Corde à sauter": "jump rope",
+    
+    # Arts énergétiques
+    "Tai chi": "tai chi",
+    "Qi gong": "qigong",
+    "Méditation": "meditation",
+    
+    # Activités quotidiennes
+    "Jardinage": "gardening",
+    "Travaux de jardin": "yard work",
+    "Tondre la pelouse": "mowing lawn",
+    "Ratisser les feuilles": "raking leaves",
+    "Ménage": "housework",
+    "Nettoyage": "cleaning",
+    "Passer la serpillière": "mopping",
+    "Passer l'aspirateur": "vacuuming",
+    "Balayer": "sweeping",
+    "Cuisine": "cooking",
+    "Préparation repas": "food preparation",
+    "Courses": "grocery shopping",
+    "Shopping": "shopping",
+    "Jouer avec enfants": "playing with children",
+    "Garde d'enfants": "childcare",
+    "Baby-sitting": "babysitting",
+    
+    # Activités musicales
+    "Jouer instrument": "playing instruments",
+    "Jouer guitare": "playing guitar",
+    "Jouer piano": "playing piano",
+    "Jouer batterie": "playing drums",
+    
+    # Travaux manuels
+    "Menuiserie": "carpentry",
+    "Peinture": "painting",
+    "Travaux de construction": "construction work",
+    "Déménagement": "moving furniture"
+}
 
 
 @profile_bp.route('/profile/<int:user_id>', methods=['GET'])
@@ -245,3 +377,161 @@ def get_health_history(user_id):
             cursor.close()
         if conn and conn.is_connected():
             conn.close()
+
+
+@profile_bp.route('/profile/<int:user_id>/calculate-calories', methods=['POST'])
+def calculate_user_calories(user_id):
+    """
+    Calcule les calories brûlées pour un utilisateur en fonction de son activité.
+    
+    Body JSON:
+        - activity (required): Nom de l'activité sportive
+        - duration (required): Durée en minutes
+        - use_profile_weight (optional): Si true, utilise le poids du profil utilisateur
+        - weight (optional): Poids en kg (prioritaire sur use_profile_weight)
+    
+    Returns:
+        Calories brûlées avec toutes les informations de l'activité
+    """
+    conn = None
+    cursor = None
+    try:
+        data = request.json
+        
+        if not data or 'activity' not in data or 'duration' not in data:
+            return jsonify({
+                'error': 'Paramètres manquants',
+                'message': 'Les paramètres "activity" et "duration" sont requis'
+            }), 400
+        
+        activity = data['activity']
+        duration = data['duration']
+        weight_kg = data.get('weight')
+        use_profile_weight = data.get('use_profile_weight', True)
+        
+        # Si pas de poids fourni et demande d'utiliser le poids du profil
+        if not weight_kg and use_profile_weight:
+            conn = mysql.connector.connect(**db_config)
+            cursor = conn.cursor(dictionary=True)
+            
+            # Récupérer le dernier poids enregistré
+            cursor.execute("""
+                SELECT weight 
+                FROM health_data 
+                WHERE user_id = %s AND weight IS NOT NULL
+                ORDER BY date DESC 
+                LIMIT 1
+            """, (user_id,))
+            
+            health_data = cursor.fetchone()
+            if health_data and health_data.get('weight'):
+                weight_kg = health_data['weight']
+        
+        if not weight_kg:
+            return jsonify({
+                'error': 'Poids non disponible',
+                'message': 'Veuillez fournir un poids ou renseigner votre poids dans votre profil'
+            }), 400
+        
+        # Appel à l'API Ninjas
+        if not API_NINJAS_KEY:
+            return jsonify({
+                'error': 'API non configurée',
+                'message': 'La clé API Ninjas n\'est pas configurée'
+            }), 500
+        
+        # Convertir le poids de kg en livres (1 kg = 2.20462 lbs)
+        weight_lbs = round(weight_kg * 2.20462, 1)
+        
+        params = {
+            'activity': activity,
+            'weight': weight_lbs,
+            'duration': duration
+        }
+        
+        headers = {'X-Api-Key': API_NINJAS_KEY}
+        
+        response = requests.get(
+            f"{API_NINJAS_BASE_URL}/caloriesburned",
+            headers=headers,
+            params=params,
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            results = response.json()
+            
+            if not results:
+                return jsonify({
+                    'success': False,
+                    'message': f'Aucune activité trouvée pour "{activity}"'
+                }), 404
+            
+            # Enrichir avec les infos utilisateur
+            enriched_results = []
+            for result in results:
+                enriched_result = result.copy()
+                enriched_result['weight_kg'] = weight_kg
+                enriched_result['user_id'] = user_id
+                enriched_results.append(enriched_result)
+            
+            return jsonify({
+                'success': True,
+                'user_id': user_id,
+                'weight_used_kg': weight_kg,
+                'count': len(enriched_results),
+                'results': enriched_results
+            })
+        else:
+            return jsonify({
+                'error': 'Erreur API',
+                'status': response.status_code,
+                'message': response.text
+            }), response.status_code
+    
+    except requests.exceptions.RequestException as e:
+        return jsonify({
+            'error': 'Erreur de connexion API',
+            'message': str(e)
+        }), 500
+    
+    except Error as e:
+        return jsonify({
+            'error': 'Erreur base de données',
+            'message': str(e)
+        }), 500
+    
+    finally:
+        if cursor:
+            cursor.close()
+        if conn and conn.is_connected():
+            conn.close()
+
+
+@profile_bp.route('/profile/<int:user_id>/activities', methods=['GET'])
+def get_available_activities(user_id):
+    """
+    Récupère la liste de toutes les activités sportives disponibles en français.
+    Endpoint pratique pour afficher une liste déroulante dans le frontend.
+    
+    Note: L'endpoint /caloriesburnedactivities de l'API Ninjas est premium,
+    donc nous utilisons une liste prédéfinie d'activités courantes.
+    """
+    try:
+        # Retourner les activités avec noms français et valeurs anglaises
+        activities_list = [
+            {'label': fr_name, 'value': en_name}
+            for fr_name, en_name in sorted(ACTIVITIES_FR_TO_EN.items())
+        ]
+        
+        return jsonify({
+            'success': True,
+            'count': len(activities_list),
+            'activities': activities_list
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'error': 'Erreur',
+            'message': str(e)
+        }), 500

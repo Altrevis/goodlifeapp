@@ -133,6 +133,76 @@ CREATE TABLE `users` (
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `tasks`
+-- (Todolist unifiée pour Sport, Alimentation et Sommeil)
+--
+
+CREATE TABLE `tasks` (
+  `id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `task_type` enum('sport','nutrition','sleep') NOT NULL COMMENT 'Type de tâche',
+  `title` varchar(255) NOT NULL,
+  `description` text,
+  `activity_type` varchar(50) DEFAULT NULL COMMENT 'Type d\'activité (Course, Musculation, Yoga, etc.)',
+  `target_duration_minutes` int DEFAULT NULL COMMENT 'Durée cible en minutes',
+  `target_reps` int DEFAULT NULL COMMENT 'Répétitions cibles si applicable',
+  `recipe_name` varchar(255) DEFAULT NULL COMMENT 'Nom de la recette',
+  `meal_type` enum('breakfast','lunch','dinner','snack') DEFAULT NULL COMMENT 'Type de repas',
+  `target_calories` int DEFAULT NULL COMMENT 'Calories cibles',
+  `ingredients` text COMMENT 'Ingrédients de la recette',
+  `target_duration_hours` float DEFAULT NULL COMMENT 'Heures de sommeil cibles',
+  `target_bedtime` time DEFAULT NULL COMMENT 'Heure de coucher cible',
+  `target_waketime` time DEFAULT NULL COMMENT 'Heure de réveil cible',
+  `is_active` tinyint(1) DEFAULT 1 COMMENT 'Tâche active ou archivée',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `task_completions`
+-- (Historique des tâches terminées avec temps passé)
+--
+
+CREATE TABLE `task_completions` (
+  `id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `task_type` enum('sport','nutrition','sleep') NOT NULL,
+  `task_id` int NOT NULL COMMENT 'ID de la tâche',
+  `completed_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `completion_date` date NOT NULL COMMENT 'Date de réalisation',
+  `duration_minutes` int DEFAULT NULL COMMENT 'Temps réel passé',
+  `notes` text COMMENT 'Notes sur la réalisation',
+  `quality_rating` int DEFAULT NULL COMMENT 'Notation de 1 à 10',
+  `actual_value` float DEFAULT NULL COMMENT 'Valeur réelle (heures de sommeil, calories, etc.)'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `daily_progress`
+-- (Évolution quotidienne globale)
+--
+
+CREATE TABLE `daily_progress` (
+  `id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `date` date NOT NULL,
+  `sport_tasks_completed` int DEFAULT 0,
+  `sport_total_duration` int DEFAULT 0 COMMENT 'Minutes totales de sport',
+  `nutrition_tasks_completed` int DEFAULT 0,
+  `nutrition_calories_consumed` int DEFAULT 0,
+  `sleep_tasks_completed` int DEFAULT 0,
+  `sleep_duration_hours` float DEFAULT 0,
+  `overall_score` float DEFAULT NULL COMMENT 'Score global du jour (0-100)',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 --
 -- Déchargement des données de la table `users`
 --
@@ -143,15 +213,6 @@ INSERT INTO `users` (`id`, `first_name`, `last_name`, `email`, `password`, `age`
 --
 -- Déchargement des données de la table `sleep_data`
 --
-
-INSERT INTO `sleep_data` (`user_id`, `date`, `duration`, `quality`) VALUES
-(1, '2025-11-27', 8.0, 9),
-(1, '2025-11-28', 7.5, 8),
-(1, '2025-11-29', 8.2, 9),
-(1, '2025-11-30', 7.0, 7),
-(1, '2025-12-01', 8.5, 9),
-(1, '2025-12-02', 7.8, 8),
-(1, '2025-12-03', 8.1, 9);
 
 --
 -- Index pour les tables déchargées
@@ -206,6 +267,33 @@ ALTER TABLE `users`
   ADD UNIQUE KEY `email` (`email`);
 
 --
+-- Index pour la table `tasks`
+--
+ALTER TABLE `tasks`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `idx_task_type` (`task_type`),
+  ADD KEY `idx_task_active` (`is_active`),
+  ADD KEY `idx_user_type` (`user_id`, `task_type`);
+
+--
+-- Index pour la table `task_completions`
+--
+ALTER TABLE `task_completions`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `idx_completion_date` (`completion_date`),
+  ADD KEY `idx_task_type` (`task_type`);
+
+--
+-- Index pour la table `daily_progress`
+--
+ALTER TABLE `daily_progress`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `user_date_unique` (`user_id`, `date`),
+  ADD KEY `idx_progress_date` (`date`);
+
+--
 -- AUTO_INCREMENT pour les tables déchargées
 --
 
@@ -252,6 +340,24 @@ ALTER TABLE `users`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
+-- AUTO_INCREMENT pour la table `tasks`
+--
+ALTER TABLE `tasks`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT pour la table `task_completions`
+--
+ALTER TABLE `task_completions`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT pour la table `daily_progress`
+--
+ALTER TABLE `daily_progress`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
 -- Contraintes pour les tables déchargées
 --
 
@@ -284,6 +390,24 @@ ALTER TABLE `health_data`
 --
 ALTER TABLE `messages`
   ADD CONSTRAINT `messages_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Contraintes pour la table `tasks`
+--
+ALTER TABLE `tasks`
+  ADD CONSTRAINT `tasks_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Contraintes pour la table `task_completions`
+--
+ALTER TABLE `task_completions`
+  ADD CONSTRAINT `task_completions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Contraintes pour la table `daily_progress`
+--
+ALTER TABLE `daily_progress`
+  ADD CONSTRAINT `daily_progress_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

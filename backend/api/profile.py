@@ -14,129 +14,178 @@ API_NINJAS_KEY = "DbNQ6NpBp8Sc3Ukvk+wsqA==9oxJRkGCmNnFT5ai"
 
 # Dictionnaire des activités sportives (français -> anglais pour l'API)
 ACTIVITIES_FR_TO_EN = {
-    # Sports de course et marche
+    # Athlétisme (Sports olympiques)
     "Course à pied": "running",
-    "Jogging": "jogging",
-    "Marche": "walking",
-    "Marche rapide": "walking",
+    "Sprint": "sprinting",
+    "Course de fond": "long distance running",
+    "Marathon": "marathon running",
+    "Semi-marathon": "half marathon",
+    "Course d'obstacles": "obstacle course",
+    "Haies": "hurdling",
+    "Saut en hauteur": "high jump",
+    "Saut en longueur": "long jump",
+    "Triple saut": "triple jump",
+    "Saut à la perche": "pole vault",
+    "Lancer du javelot": "javelin throw",
+    "Lancer du poids": "shot put",
+    "Lancer du disque": "discus throw",
+    "Lancer du marteau": "hammer throw",
+    "Décathlon": "decathlon",
+    "Heptathlon": "heptathlon",
+    "Marche athlétique": "race walking",
     
-    # Sports aquatiques
+    # Sports aquatiques (Compétition)
     "Natation": "swimming",
-    "Aquagym": "water aerobics",
-    "Aqua aérobic": "aqua aerobics",
+    "Nage libre": "freestyle swimming",
+    "Brasse": "breaststroke",
+    "Dos crawlé": "backstroke",
+    "Papillon": "butterfly stroke",
+    "Water-polo": "water polo",
+    "Natation synchronisée": "synchronized swimming",
+    "Plongeon": "diving",
     "Aviron": "rowing",
     "Kayak": "kayaking",
     "Canoë": "canoeing",
+    "Voile": "sailing",
     "Surf": "surfing",
     "Paddle": "paddleboarding",
+    "Planche à voile": "windsurfing",
+    "Kitesurf": "kitesurfing",
     
-    # Cyclisme
+    # Cyclisme (Compétition)
     "Vélo": "cycling",
-    "Cyclisme": "biking",
+    "Cyclisme sur route": "road cycling",
+    "VTT": "mountain biking",
+    "BMX": "BMX",
+    "Cyclisme sur piste": "track cycling",
     "Vélo d'appartement": "stationary bike",
     
-    # Sports de fitness
-    "Randonnée": "hiking",
-    "Danse": "dancing",
-    "Aérobic": "aerobics",
-    "Yoga": "yoga",
-    "Pilates": "pilates",
-    "Étirements": "stretching",
-    "Zumba": "zumba",
-    "Step": "step aerobics",
-    
-    # Musculation
-    "Musculation": "weightlifting",
-    "Renforcement musculaire": "strength training",
-    "Entraînement résistance": "resistance training",
-    "Pompes": "push-ups",
-    "Abdominaux": "sit-ups",
-    "Tractions": "pull-ups",
-    "Squats": "squats",
-    "Fentes": "lunges",
-    "Gainage": "planks",
-    "CrossFit": "crossfit",
-    "Circuit training": "circuit training",
-    "Entraînement fractionné": "interval training",
-    "HIIT": "HIIT",
-    
-    # Appareils de fitness
-    "Vélo elliptique": "elliptical",
-    "Tapis de course": "treadmill",
-    "Montée d'escaliers": "stair climbing",
-    
-    # Sports collectifs
-    "Basketball": "basketball",
-    "Football américain": "football",
+    # Sports collectifs (Professionnels)
     "Football": "soccer",
-    "Tennis": "tennis",
+    "Basketball": "basketball",
+    "Handball": "handball",
     "Volleyball": "volleyball",
+    "Beach volley": "beach volleyball",
+    "Rugby": "rugby",
+    "Football américain": "football",
     "Baseball": "baseball",
+    "Softball": "softball",
+    "Hockey sur glace": "ice hockey",
+    "Hockey sur gazon": "field hockey",
+    "Polo": "polo",
+    "Ultimate frisbee": "ultimate frisbee",
     
-    # Sports de combat
-    "Boxe": "boxing",
-    "Arts martiaux": "martial arts",
-    "Karaté": "karate",
-    "Judo": "judo",
-    "Taekwondo": "taekwondo",
-    
-    # Sports d'hiver
-    "Ski": "skiing",
-    "Snowboard": "snowboarding",
-    "Patinage": "skating",
-    "Patinage sur glace": "ice skating",
-    "Roller": "roller skating",
-    
-    # Sports de raquette
-    "Golf": "golf",
-    "Bowling": "bowling",
+    # Sports de raquette (Compétition)
+    "Tennis": "tennis",
     "Badminton": "badminton",
     "Tennis de table": "table tennis",
     "Squash": "squash",
+    "Padel": "padel",
     "Racquetball": "racquetball",
     
-    # Escalade
-    "Escalade": "rock climbing",
-    "Alpinisme": "mountaineering",
-    "Rappel": "rappelling",
+    # Sports de combat (Compétition olympique)
+    "Boxe": "boxing",
+    "Boxe anglaise": "boxing",
+    "Kick-boxing": "kickboxing",
+    "Muay Thai": "muay thai",
+    "MMA": "mixed martial arts",
+    "Judo": "judo",
+    "Karaté": "karate",
+    "Taekwondo": "taekwondo",
+    "Jiu-jitsu": "jiu jitsu",
+    "Lutte": "wrestling",
+    "Lutte gréco-romaine": "greco roman wrestling",
+    "Lutte libre": "freestyle wrestling",
+    "Escrime": "fencing",
+    "Kendo": "kendo",
+    "Aikido": "aikido",
+    "Kung fu": "kung fu",
+    "Capoeira": "capoeira",
     
-    # Corde à sauter
+    # Sports d'hiver (Olympiques)
+    "Ski alpin": "alpine skiing",
+    "Ski de fond": "cross country skiing",
+    "Ski freestyle": "freestyle skiing",
+    "Snowboard": "snowboarding",
+    "Biathlon": "biathlon",
+    "Saut à ski": "ski jumping",
+    "Combiné nordique": "nordic combined",
+    "Patinage artistique": "figure skating",
+    "Patinage de vitesse": "speed skating",
+    "Hockey sur glace": "ice hockey",
+    "Curling": "curling",
+    "Bobsleigh": "bobsleigh",
+    "Luge": "luge",
+    "Skeleton": "skeleton",
+    
+    # Gymnastique (Olympique)
+    "Gymnastique": "gymnastics",
+    "Gymnastique artistique": "artistic gymnastics",
+    "Gymnastique rythmique": "rhythmic gymnastics",
+    "Trampoline": "trampoline",
+    "Acrobatie": "acrobatics",
+    
+    # Fitness et musculation (Compétition)
+    "Musculation": "weightlifting",
+    "Haltérophilie": "weightlifting",
+    "Powerlifting": "powerlifting",
+    "Bodybuilding": "bodybuilding",
+    "CrossFit": "crossfit",
+    "Fitness": "fitness",
+    "Aérobic": "aerobics",
+    "Step": "step aerobics",
+    "Zumba": "zumba",
+    "HIIT": "HIIT",
+    "Circuit training": "circuit training",
+    "Entraînement fractionné": "interval training",
     "Corde à sauter": "jump rope",
     
-    # Arts énergétiques
+    # Sports individuels (Olympiques)
+    "Triathlon": "triathlon",
+    "Pentathlon moderne": "modern pentathlon",
+    "Équitation": "horseback riding",
+    "Dressage": "dressage",
+    "Saut d'obstacles": "show jumping",
+    "Tir à l'arc": "archery",
+    "Tir sportif": "shooting",
+    "Golf": "golf",
+    "Bowling": "bowling",
+    
+    # Sports extrêmes (Compétition)
+    "Skateboard": "skateboarding",
+    "Roller": "roller skating",
+    "Escalade": "rock climbing",
+    "Escalade sportive": "sport climbing",
+    "Alpinisme": "mountaineering",
+    "Parkour": "parkour",
+    "Trail": "trail running",
+    "Course d'orientation": "orienteering",
+    "Triathlon": "triathlon",
+    "Ironman": "ironman",
+    "Duathlon": "duathlon",
+    
+    # Danse sportive (Compétition)
+    "Danse sportive": "ballroom dancing",
+    "Danse classique": "ballet",
+    "Breakdance": "breakdancing",
+    "Hip-hop": "hip hop dancing",
+    "Danse contemporaine": "contemporary dance",
+    
+    # Sports mécaniques (avec effort physique)
+    "Motocross": "motocross",
+    "VTT descente": "downhill mountain biking",
+    
+    # Arts martiaux traditionnels
     "Tai chi": "tai chi",
     "Qi gong": "qigong",
-    "Méditation": "meditation",
+    "Yoga": "yoga",
+    "Pilates": "pilates",
     
-    # Activités quotidiennes
-    "Jardinage": "gardening",
-    "Travaux de jardin": "yard work",
-    "Tondre la pelouse": "mowing lawn",
-    "Ratisser les feuilles": "raking leaves",
-    "Ménage": "housework",
-    "Nettoyage": "cleaning",
-    "Passer la serpillière": "mopping",
-    "Passer l'aspirateur": "vacuuming",
-    "Balayer": "sweeping",
-    "Cuisine": "cooking",
-    "Préparation repas": "food preparation",
-    "Courses": "grocery shopping",
-    "Shopping": "shopping",
-    "Jouer avec enfants": "playing with children",
-    "Garde d'enfants": "childcare",
-    "Baby-sitting": "babysitting",
-    
-    # Activités musicales
-    "Jouer instrument": "playing instruments",
-    "Jouer guitare": "playing guitar",
-    "Jouer piano": "playing piano",
-    "Jouer batterie": "playing drums",
-    
-    # Travaux manuels
-    "Menuiserie": "carpentry",
-    "Peinture": "painting",
-    "Travaux de construction": "construction work",
-    "Déménagement": "moving furniture"
+    # Appareils de fitness
+    "Tapis de course": "treadmill",
+    "Vélo elliptique": "elliptical",
+    "Rameur": "rowing machine",
+    "Stepper": "stair climbing"
 }
 
 

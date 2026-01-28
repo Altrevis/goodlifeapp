@@ -1,7 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
 import './css/evolution.css';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const API_URL = 'http://localhost:5000/api/tasks';
 
@@ -21,23 +41,23 @@ interface Summary {
   avg_sleep_hours?: number;
 }
 
-const EvolutionTab: React.FC = () => {
+interface EvolutionTabProps {
+  userId: number | null;
+}
+
+const EvolutionTab: React.FC<EvolutionTabProps> = ({ userId }) => {
   const [progressData, setProgressData] = useState<DailyProgress[]>([]);
   const [sportSummary, setSportSummary] = useState<Summary | null>(null);
   const [nutritionSummary, setNutritionSummary] = useState<Summary | null>(null);
   const [sleepSummary, setSleepSummary] = useState<Summary | null>(null);
   const [days, setDays] = useState(7);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadData();
-  }, [days]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
+    if (!userId) return;
     setLoading(true);
     try {
       // Charger le progrès quotidien
-      const progressResponse = await axios.get(`${API_URL}/progress/daily?days=${days}`, {
+      const progressResponse = await axios.get(`${API_URL}/progress/daily?days=${days}&user_id=${userId}`, {
         withCredentials: true
       });
       if (progressResponse.data.success) {
@@ -45,7 +65,7 @@ const EvolutionTab: React.FC = () => {
       }
 
       // Charger le résumé
-      const summaryResponse = await axios.get(`${API_URL}/progress/summary?days=${days}`, {
+      const summaryResponse = await axios.get(`${API_URL}/progress/summary?days=${days}&user_id=${userId}`, {
         withCredentials: true
       });
       if (summaryResponse.data.success) {
@@ -58,15 +78,42 @@ const EvolutionTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [days, userId]);
+
+  useEffect(() => {
+    loadData();
+  }, [days, loadData]);
 
   // Préparer les données pour le graphique
-  const chartData = progressData.map(p => ({
-    date: new Date(p.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }),
-    Sport: p.sport_total_duration,
-    Nutrition: p.nutrition_tasks_completed,
-    Sommeil: p.sleep_duration_hours
-  }));
+  const chartData = {
+    labels: progressData.map(p => new Date(p.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })),
+    datasets: [
+      {
+        label: "Sport (min)",
+        data: progressData.map(p => p.sport_total_duration),
+        borderColor: "#4A90E2",
+        backgroundColor: "rgba(74, 144, 226, 0.2)",
+        yAxisID: 'y',
+        tension: 0.3
+      },
+      {
+        label: "Nutrition (recettes)",
+        data: progressData.map(p => p.nutrition_tasks_completed),
+        borderColor: "#28a745",
+        backgroundColor: "rgba(40, 167, 69, 0.2)",
+        yAxisID: 'y',
+        tension: 0.3
+      },
+      {
+        label: "Sommeil (h)",
+        data: progressData.map(p => p.sleep_duration_hours),
+        borderColor: "#9b59b6",
+        backgroundColor: "rgba(155, 89, 182, 0.2)",
+        yAxisID: 'y1',
+        tension: 0.3
+      }
+    ]
+  };
 
   if (loading) {
     return <div className="loading">Chargement de l'évolution...</div>;
@@ -77,20 +124,20 @@ const EvolutionTab: React.FC = () => {
       <div className="evolution-header">
         <h2>📊 Évolution de vos progrès</h2>
         <div className="period-selector">
-          <button 
-            className={days === 7 ? 'active' : ''} 
+          <button
+            className={days === 7 ? 'active' : ''}
             onClick={() => setDays(7)}
           >
             7 jours
           </button>
-          <button 
-            className={days === 30 ? 'active' : ''} 
+          <button
+            className={days === 30 ? 'active' : ''}
             onClick={() => setDays(30)}
           >
             30 jours
           </button>
-          <button 
-            className={days === 90 ? 'active' : ''} 
+          <button
+            className={days === 90 ? 'active' : ''}
             onClick={() => setDays(90)}
           >
             90 jours
@@ -107,7 +154,7 @@ const EvolutionTab: React.FC = () => {
             <div className="stat-value">{sportSummary?.total_completions || 0}</div>
             <div className="stat-label">tâches complétées</div>
             <div className="stat-detail">
-              {sportSummary?.total_duration || 0} min · Note moyenne: {sportSummary?.avg_rating?.toFixed(1) || '-'}/10
+              {sportSummary?.total_duration || 0} min · Note moyenne: {sportSummary?.avg_rating ? Number(sportSummary.avg_rating).toFixed(1) : '-'}/10
             </div>
           </div>
         </div>
@@ -119,7 +166,7 @@ const EvolutionTab: React.FC = () => {
             <div className="stat-value">{nutritionSummary?.total_completions || 0}</div>
             <div className="stat-label">recettes réalisées</div>
             <div className="stat-detail">
-              Note moyenne: {nutritionSummary?.avg_rating?.toFixed(1) || '-'}/10
+              Note moyenne: {nutritionSummary?.avg_rating ? Number(nutritionSummary.avg_rating).toFixed(1) : '-'}/10
             </div>
           </div>
         </div>
@@ -128,53 +175,41 @@ const EvolutionTab: React.FC = () => {
           <div className="stat-icon">😴</div>
           <div className="stat-content">
             <h3>Sommeil</h3>
-            <div className="stat-value">{sleepSummary?.avg_sleep_hours?.toFixed(1) || 0}h</div>
+            <div className="stat-value">{sleepSummary?.avg_sleep_hours ? Number(sleepSummary.avg_sleep_hours).toFixed(1) : 0}h</div>
             <div className="stat-label">moyenne par nuit</div>
             <div className="stat-detail">
-              {sleepSummary?.total_completions || 0} nuits · Note: {sleepSummary?.avg_rating?.toFixed(1) || '-'}/10
+              {sleepSummary?.total_completions || 0} nuits · Note: {sleepSummary?.avg_rating ? Number(sleepSummary.avg_rating).toFixed(1) : '-'}/10
             </div>
           </div>
         </div>
       </div>
 
       {/* Graphique d'évolution */}
-      <div className="chart-container">
+      <div className="chart-container" style={{ height: '400px' }}>
         <h3>Évolution sur {days} jours</h3>
-        {chartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis yAxisId="left" label={{ value: 'Minutes / Tâches', angle: -90, position: 'insideLeft' }} />
-              <YAxis yAxisId="right" orientation="right" label={{ value: 'Heures', angle: 90, position: 'insideRight' }} />
-              <Tooltip />
-              <Legend />
-              <Line 
-                yAxisId="left"
-                type="monotone" 
-                dataKey="Sport" 
-                stroke="#4A90E2" 
-                strokeWidth={2}
-                name="Sport (min)" 
-              />
-              <Line 
-                yAxisId="left"
-                type="monotone" 
-                dataKey="Nutrition" 
-                stroke="#28a745" 
-                strokeWidth={2}
-                name="Nutrition (recettes)" 
-              />
-              <Line 
-                yAxisId="right"
-                type="monotone" 
-                dataKey="Sommeil" 
-                stroke="#9b59b6" 
-                strokeWidth={2}
-                name="Sommeil (h)" 
-              />
-            </LineChart>
-          </ResponsiveContainer>
+        {chartData.labels.length > 0 ? (
+          <Line
+            data={chartData}
+            options={{
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                y: {
+                  type: 'linear',
+                  display: true,
+                  position: 'left',
+                  title: { display: true, text: 'Minutes / Tâches' }
+                },
+                y1: {
+                  type: 'linear',
+                  display: true,
+                  position: 'right',
+                  grid: { drawOnChartArea: false },
+                  title: { display: true, text: 'Heures' }
+                }
+              }
+            }}
+          />
         ) : (
           <div className="no-data">
             <p>Aucune donnée d'évolution pour cette période.</p>

@@ -11,10 +11,13 @@ tasks_bp = Blueprint('tasks', __name__)
 # ==================== SPORT TASKS ====================
 
 @tasks_bp.route('/sport/tasks', methods=['GET'])
-@login_required
 def get_sport_tasks():
     """Récupérer toutes les tâches sportives actives"""
     try:
+        user_id = request.args.get('user_id', type=int) or (current_user.id if current_user.is_authenticated else None)
+        if not user_id:
+            return jsonify({"success": False, "error": "User ID required"}), 401
+            
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
@@ -22,7 +25,7 @@ def get_sport_tasks():
             SELECT * FROM tasks 
             WHERE user_id = %s AND task_type = 'sport' AND is_active = 1
             ORDER BY created_at DESC
-        """, (current_user.id,))
+        """, (user_id,))
         
         tasks = cursor.fetchall()
         cursor.close()
@@ -34,11 +37,13 @@ def get_sport_tasks():
 
 
 @tasks_bp.route('/sport/tasks', methods=['POST'])
-@login_required
 def create_sport_task():
     """Créer une nouvelle tâche sportive"""
     try:
         data = request.get_json()
+        user_id = data.get('user_id') or (current_user.id if current_user.is_authenticated else None)
+        if not user_id:
+            return jsonify({"success": False, "error": "User ID required"}), 401
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -48,7 +53,7 @@ def create_sport_task():
             (user_id, task_type, title, description, activity_type, target_duration_minutes, target_reps)
             VALUES (%s, 'sport', %s, %s, %s, %s, %s)
         """, (
-            current_user.id,
+            user_id,
             data.get('title'),
             data.get('description'),
             data.get('activity_type'),
@@ -67,12 +72,14 @@ def create_sport_task():
 
 
 @tasks_bp.route('/sport/tasks/<int:task_id>', methods=['PUT'])
-@login_required
 def update_sport_task(task_id):
     """Mettre à jour une tâche sportive"""
     try:
         data = request.get_json()
-        
+        user_id = data.get('user_id') or request.args.get('user_id', type=int) or (current_user.id if current_user.is_authenticated else None)
+        if not user_id:
+            return jsonify({"success": False, "error": "User ID required"}), 401
+
         conn = get_db_connection()
         cursor = conn.cursor()
         
@@ -88,7 +95,7 @@ def update_sport_task(task_id):
             data.get('target_duration_minutes'),
             data.get('target_reps'),
             task_id,
-            current_user.id
+            user_id
         ))
         
         conn.commit()
@@ -101,10 +108,13 @@ def update_sport_task(task_id):
 
 
 @tasks_bp.route('/sport/tasks/<int:task_id>', methods=['DELETE'])
-@login_required
 def delete_sport_task(task_id):
     """Supprimer (archiver) une tâche sportive"""
     try:
+        user_id = request.args.get('user_id', type=int) or (current_user.id if current_user.is_authenticated else None)
+        if not user_id:
+            return jsonify({"success": False, "error": "User ID required"}), 401
+
         conn = get_db_connection()
         cursor = conn.cursor()
         
@@ -112,7 +122,7 @@ def delete_sport_task(task_id):
             UPDATE tasks 
             SET is_active = 0
             WHERE id = %s AND user_id = %s AND task_type = 'sport'
-        """, (task_id, current_user.id))
+        """, (task_id, user_id))
         
         conn.commit()
         cursor.close()
@@ -126,10 +136,13 @@ def delete_sport_task(task_id):
 # ==================== NUTRITION TASKS ====================
 
 @tasks_bp.route('/nutrition/tasks', methods=['GET'])
-@login_required
 def get_nutrition_tasks():
     """Récupérer toutes les tâches nutritionnelles actives"""
     try:
+        user_id = request.args.get('user_id', type=int) or (current_user.id if current_user.is_authenticated else None)
+        if not user_id:
+            return jsonify({"success": False, "error": "User ID required"}), 401
+
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
@@ -137,7 +150,7 @@ def get_nutrition_tasks():
             SELECT * FROM tasks 
             WHERE user_id = %s AND task_type = 'nutrition' AND is_active = 1
             ORDER BY created_at DESC
-        """, (current_user.id,))
+        """, (user_id,))
         
         tasks = cursor.fetchall()
         cursor.close()
@@ -149,11 +162,13 @@ def get_nutrition_tasks():
 
 
 @tasks_bp.route('/nutrition/tasks', methods=['POST'])
-@login_required
 def create_nutrition_task():
     """Créer une nouvelle tâche nutritionnelle"""
     try:
         data = request.get_json()
+        user_id = data.get('user_id') or (current_user.id if current_user.is_authenticated else None)
+        if not user_id:
+            return jsonify({"success": False, "error": "User ID required"}), 401
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -163,7 +178,7 @@ def create_nutrition_task():
             (user_id, task_type, title, description, recipe_name, meal_type, target_calories, ingredients)
             VALUES (%s, 'nutrition', %s, %s, %s, %s, %s, %s)
         """, (
-            current_user.id,
+            user_id,
             data.get('title'),
             data.get('description'),
             data.get('recipe_name'),
@@ -183,12 +198,14 @@ def create_nutrition_task():
 
 
 @tasks_bp.route('/nutrition/tasks/<int:task_id>', methods=['PUT'])
-@login_required
 def update_nutrition_task(task_id):
     """Mettre à jour une tâche nutritionnelle"""
     try:
         data = request.get_json()
-        
+        user_id = data.get('user_id') or request.args.get('user_id', type=int) or (current_user.id if current_user.is_authenticated else None)
+        if not user_id:
+            return jsonify({"success": False, "error": "User ID required"}), 401
+
         conn = get_db_connection()
         cursor = conn.cursor()
         
@@ -205,7 +222,7 @@ def update_nutrition_task(task_id):
             data.get('target_calories'),
             data.get('ingredients'),
             task_id,
-            current_user.id
+            user_id
         ))
         
         conn.commit()
@@ -218,10 +235,13 @@ def update_nutrition_task(task_id):
 
 
 @tasks_bp.route('/nutrition/tasks/<int:task_id>', methods=['DELETE'])
-@login_required
 def delete_nutrition_task(task_id):
     """Supprimer (archiver) une tâche nutritionnelle"""
     try:
+        user_id = request.args.get('user_id', type=int) or (current_user.id if current_user.is_authenticated else None)
+        if not user_id:
+            return jsonify({"success": False, "error": "User ID required"}), 401
+
         conn = get_db_connection()
         cursor = conn.cursor()
         
@@ -229,7 +249,7 @@ def delete_nutrition_task(task_id):
             UPDATE tasks 
             SET is_active = 0
             WHERE id = %s AND user_id = %s AND task_type = 'nutrition'
-        """, (task_id, current_user.id))
+        """, (task_id, user_id))
         
         conn.commit()
         cursor.close()
@@ -243,10 +263,13 @@ def delete_nutrition_task(task_id):
 # ==================== SLEEP TASKS ====================
 
 @tasks_bp.route('/sleep/tasks', methods=['GET'])
-@login_required
 def get_sleep_tasks():
     """Récupérer toutes les tâches de sommeil actives"""
     try:
+        user_id = request.args.get('user_id', type=int) or (current_user.id if current_user.is_authenticated else None)
+        if not user_id:
+            return jsonify({"success": False, "error": "User ID required"}), 401
+
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
@@ -254,7 +277,7 @@ def get_sleep_tasks():
             SELECT * FROM tasks 
             WHERE user_id = %s AND task_type = 'sleep' AND is_active = 1
             ORDER BY created_at DESC
-        """, (current_user.id,))
+        """, (user_id,))
         
         tasks = cursor.fetchall()
         cursor.close()
@@ -266,11 +289,13 @@ def get_sleep_tasks():
 
 
 @tasks_bp.route('/sleep/tasks', methods=['POST'])
-@login_required
 def create_sleep_task():
     """Créer une nouvelle tâche de sommeil"""
     try:
         data = request.get_json()
+        user_id = data.get('user_id') or (current_user.id if current_user.is_authenticated else None)
+        if not user_id:
+            return jsonify({"success": False, "error": "User ID required"}), 401
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -280,7 +305,7 @@ def create_sleep_task():
             (user_id, task_type, title, description, target_duration_hours, target_bedtime, target_waketime)
             VALUES (%s, 'sleep', %s, %s, %s, %s, %s)
         """, (
-            current_user.id,
+            user_id,
             data.get('title'),
             data.get('description'),
             data.get('target_duration_hours'),
@@ -299,12 +324,14 @@ def create_sleep_task():
 
 
 @tasks_bp.route('/sleep/tasks/<int:task_id>', methods=['PUT'])
-@login_required
 def update_sleep_task(task_id):
     """Mettre à jour une tâche de sommeil"""
     try:
         data = request.get_json()
-        
+        user_id = data.get('user_id') or request.args.get('user_id', type=int) or (current_user.id if current_user.is_authenticated else None)
+        if not user_id:
+            return jsonify({"success": False, "error": "User ID required"}), 401
+
         conn = get_db_connection()
         cursor = conn.cursor()
         
@@ -320,7 +347,7 @@ def update_sleep_task(task_id):
             data.get('target_bedtime'),
             data.get('target_waketime'),
             task_id,
-            current_user.id
+            user_id
         ))
         
         conn.commit()
@@ -333,10 +360,13 @@ def update_sleep_task(task_id):
 
 
 @tasks_bp.route('/sleep/tasks/<int:task_id>', methods=['DELETE'])
-@login_required
 def delete_sleep_task(task_id):
     """Supprimer (archiver) une tâche de sommeil"""
     try:
+        user_id = request.args.get('user_id', type=int) or (current_user.id if current_user.is_authenticated else None)
+        if not user_id:
+            return jsonify({"success": False, "error": "User ID required"}), 401
+
         conn = get_db_connection()
         cursor = conn.cursor()
         
@@ -344,7 +374,7 @@ def delete_sleep_task(task_id):
             UPDATE tasks 
             SET is_active = 0
             WHERE id = %s AND user_id = %s AND task_type = 'sleep'
-        """, (task_id, current_user.id))
+        """, (task_id, user_id))
         
         conn.commit()
         cursor.close()
@@ -358,11 +388,14 @@ def delete_sleep_task(task_id):
 # ==================== TASK COMPLETIONS ====================
 
 @tasks_bp.route('/completions', methods=['POST'])
-@login_required
 def complete_task():
     """Marquer une tâche comme terminée avec le temps passé"""
     try:
         data = request.get_json()
+        user_id = data.get('user_id') or (current_user.id if current_user.is_authenticated else None)
+        if not user_id:
+            return jsonify({"success": False, "error": "User ID required"}), 401
+
         task_type = data.get('task_type')  # 'sport', 'nutrition', 'sleep'
         task_id = data.get('task_id')
         duration_minutes = data.get('duration_minutes')
@@ -381,7 +414,7 @@ def complete_task():
              notes, quality_rating, actual_value)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """, (
-            current_user.id,
+            user_id,
             task_type,
             task_id,
             completion_date,
@@ -404,7 +437,7 @@ def complete_task():
                 sleep_tasks_completed = sleep_tasks_completed + IF(%s = 'sleep', 1, 0),
                 sleep_duration_hours = IF(%s = 'sleep' AND %s IS NOT NULL, %s, sleep_duration_hours)
         """, (
-            current_user.id,
+            user_id,
             completion_date,
             task_type,
             task_type,
@@ -427,10 +460,13 @@ def complete_task():
 
 
 @tasks_bp.route('/completions/<task_type>', methods=['GET'])
-@login_required
 def get_task_completions(task_type):
     """Récupérer l'historique des complétions pour un type de tâche"""
     try:
+        user_id = request.args.get('user_id', type=int) or (current_user.id if current_user.is_authenticated else None)
+        if not user_id:
+            return jsonify({"success": False, "error": "User ID required"}), 401
+
         days = request.args.get('days', 30, type=int)
         
         conn = get_db_connection()
@@ -444,7 +480,7 @@ def get_task_completions(task_type):
             WHERE tc.user_id = %s AND tc.task_type = %s
                   AND tc.completion_date >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
             ORDER BY tc.completion_date DESC, tc.completed_at DESC
-        """, (current_user.id, task_type, days))
+        """, (user_id, task_type, days))
         
         completions = cursor.fetchall()
         cursor.close()
@@ -458,10 +494,13 @@ def get_task_completions(task_type):
 # ==================== DAILY PROGRESS & EVOLUTION ====================
 
 @tasks_bp.route('/progress/daily', methods=['GET'])
-@login_required
 def get_daily_progress():
     """Récupérer le progrès quotidien"""
     try:
+        user_id = request.args.get('user_id', type=int) or (current_user.id if current_user.is_authenticated else None)
+        if not user_id:
+            return jsonify({"success": False, "error": "User ID required"}), 401
+
         days = request.args.get('days', 30, type=int)
         
         conn = get_db_connection()
@@ -472,7 +511,7 @@ def get_daily_progress():
             WHERE user_id = %s 
                   AND date >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
             ORDER BY date ASC
-        """, (current_user.id, days))
+        """, (user_id, days))
         
         progress = cursor.fetchall()
         cursor.close()
@@ -484,10 +523,13 @@ def get_daily_progress():
 
 
 @tasks_bp.route('/progress/summary', methods=['GET'])
-@login_required
 def get_progress_summary():
     """Résumé global des progrès avec statistiques"""
     try:
+        user_id = request.args.get('user_id', type=int) or (current_user.id if current_user.is_authenticated else None)
+        if not user_id:
+            return jsonify({"success": False, "error": "User ID required"}), 401
+
         days = request.args.get('days', 7, type=int)
         
         conn = get_db_connection()
@@ -502,7 +544,7 @@ def get_progress_summary():
             FROM task_completions
             WHERE user_id = %s AND task_type = 'sport'
                   AND completion_date >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
-        """, (current_user.id, days))
+        """, (user_id, days))
         sport_stats = cursor.fetchone()
         
         # Statistiques nutrition
@@ -513,7 +555,7 @@ def get_progress_summary():
             FROM task_completions
             WHERE user_id = %s AND task_type = 'nutrition'
                   AND completion_date >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
-        """, (current_user.id, days))
+        """, (user_id, days))
         nutrition_stats = cursor.fetchone()
         
         # Statistiques sommeil
@@ -525,7 +567,7 @@ def get_progress_summary():
             FROM task_completions
             WHERE user_id = %s AND task_type = 'sleep'
                   AND completion_date >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
-        """, (current_user.id, days))
+        """, (user_id, days))
         sleep_stats = cursor.fetchone()
         
         cursor.close()

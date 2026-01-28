@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import "./css/chat.css";
+import UserInfo from "../components/UserInfo";
+import TodoList from "../components/TodoList";
+import EvolutionTab from "../components/EvolutionTab";
 
 type Message = {
   role: "user" | "assistant" | "system";
@@ -14,7 +18,7 @@ type StoredUser = {
   last_name?: string;
 };
 
-// URL du backend Flask qui joue le proxy avec LM Studio
+// URL du backend Flask
 const BACKEND_URL = "http://127.0.0.1:5000";
 
 const Chat: React.FC = () => {
@@ -22,6 +26,12 @@ const Chat: React.FC = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
+
+  // New States for Dashboard
+  const [userData, setUserData] = useState<any>(null);
+  const [healthData, setHealthData] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'sport' | 'nutrition' | 'sleep' | 'evolution'>('sport');
+  const [refreshKey, setRefreshKey] = useState(0); // To force reload of tabs
 
   const loadUserId = () => {
     try {
@@ -35,129 +45,45 @@ const Chat: React.FC = () => {
   };
 
   useEffect(() => {
-    setUserId(loadUserId());
+    const uid = loadUserId();
+    setUserId(uid);
+    if (uid) {
+      fetchMessages(uid);
+      fetchUserProfile(uid);
+    }
   }, []);
 
-  // Chargement de l'historique des messages au montage
-  useEffect(() => {
-    const fetchMessages = async () => {
-      const uid = loadUserId();
-      setUserId(uid);
-      if (!uid) return;
-      try {
-        const response = await fetch(`${BACKEND_URL}/messages?user_id=${uid}`);
-        if (!response.ok) {
-          throw new Error(`Erreur API: ${response.statusText}`);
-        }
-        const data: Message[] = await response.json();
-        const loadedMessages = data.map(({ role, content, created_at }) => ({
-          role,
-          content,
-          created_at,
-        }));
-        setMessages(loadedMessages);
-        
-        // Si c'est la première conversation (pas de messages), envoyer automatiquement "Bonjour"
-        // pour déclencher la récupération des données et la réponse de confirmation de l'IA
-        if (loadedMessages.length === 0) {
-          setIsLoading(true);
-          try {
-            const initResponse = await fetch(`${BACKEND_URL}/api/chat`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                model: "mistralai/ministral-3-3b",
-                user_id: uid,
-                messages: [{
-                  role: "user",
-                  content: "Bonjour"
-                }],
-              }),
-            });
-            
-            if (initResponse.ok) {
-              const initData = await initResponse.json();
-              const reply = initData.choices?.[0]?.message?.content ?? 
-                           initData.output_text ?? 
-                           "";
-              
-              if (reply) {
-                const cleanedReply = sanitizeAssistantReply(reply);
-                
-                // Sauvegarder le message utilisateur "Bonjour"
-                const userMessage: Message = { role: "user", content: "Bonjour" };
-                await fetch(`${BACKEND_URL}/messages`, {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    role: "user",
-                    content: "Bonjour",
-                    user_id: uid,
-                  }),
-                });
-                
-                // Sauvegarder la réponse de l'IA
-                const assistantMessage: Message = {
-                  role: "assistant",
-                  content: cleanedReply,
-                };
-                await fetch(`${BACKEND_URL}/messages`, {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    role: "assistant",
-                    content: cleanedReply,
-                    user_id: uid,
-                  }),
-                });
-                
-                // Récupérer tous les messages (y compris le message système)
-                const updatedResponse = await fetch(`${BACKEND_URL}/messages?user_id=${uid}`);
-                if (updatedResponse.ok) {
-                  const updatedData: Message[] = await updatedResponse.json();
-                  const updatedMessages = updatedData.map(({ role, content, created_at }) => ({
-                    role,
-                    content,
-                    created_at,
-                  }));
-                  setMessages(updatedMessages);
-                }
-              }
-            }
-          } catch (error) {
-            console.error("Erreur lors de l'initialisation:", error);
-          } finally {
-            setIsLoading(false);
-          }
-        }
-      } catch (error) {
-        console.error("Impossible de charger l'historique :", error);
-      }
-    };
-
-    fetchMessages();
-  }, []);
-
-  // Persistance d'un message côté backend
-  const persistMessage = async (message: Message) => {
+  const fetchUserProfile = async (uid: number) => {
     try {
-      if (!userId) return;
+      // Endpoint from profile.py: /profile/<user_id>
+      const response = await axios.get(`${BACKEND_URL}/profile/${uid}`);
+      if (response.data) {
+        setUserData(response.data.user);
+        setHealthData(response.data.health_data);
+      }
+    } catch (error) {
+      console.error("Erreur chargement profil:", error);
+    }
+  };
+
+  const fetchMessages = async (uid: number) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/messages?user_id=${uid}`);
+      if (!response.ok) throw new Error(`Erreur API: ${response.statusText}`);
+      const data: Message[] = await response.json();
+      setMessages(data.map(({ role, content, created_at }) => ({ role, content, created_at })));
+    } catch (error) {
+      console.error("Impossible de charger l'historique :", error);
+    }
+  };
+
+  const persistMessage = async (message: Message) => {
+    if (!userId) return;
+    try {
       await fetch(`${BACKEND_URL}/messages`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          role: message.role,
-          content: message.content,
-          user_id: userId,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: message.role, content: message.content, user_id: userId }),
       });
     } catch (error) {
       console.error("Impossible d'enregistrer le message :", error);
@@ -165,137 +91,164 @@ const Chat: React.FC = () => {
   };
 
   const sanitizeAssistantReply = (text: string) => {
-    let cleaned = text;
-
-    // Nettoyage Markdown de base
-    cleaned = cleaned.replace(/`{3}[\s\S]*?`{3}/g, " "); // blocs code
-    cleaned = cleaned.replace(/`([^`]+)`/g, "$1"); // inline code
-    cleaned = cleaned.replace(/[*_]{1,3}([^*_]+)[*_]{1,3}/g, "$1"); // italique/gras
-    cleaned = cleaned.replace(/^#{1,6}\s*/gm, ""); // titres
-
-    // Supprimer lignes de tableaux Markdown
-    cleaned = cleaned.replace(/^\s*\|.*\|\s*$/gm, "");
-
-    // Séparateurs type "---" ou " -- "
-    cleaned = cleaned.replace(/--+/g, "\n\n");
-
-    // Listes -> puces lisibles
-    cleaned = cleaned.replace(/^\s*[-*•]\s+/gm, "• ");
-
-    // Normaliser les sauts de ligne et aérer
-    cleaned = cleaned.replace(/\r\n/g, "\n");
-    cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
-    cleaned = cleaned.replace(/[ \t]+\n/g, "\n"); // trim fin de ligne
-
-    // Si le texte est une longue ligne sans retours, on insère des sauts aux séparateurs.
-    // Sections numérotées / blocs importants
-    cleaned = cleaned.replace(/(\d️⃣)/g, "\n\n$1");
-    cleaned = cleaned.replace(/(✅|🚨|📌|💡)/g, "\n\n$1");
-    cleaned = cleaned.replace(/(\.)(\s+)([A-ZÉÈÎÏÔÛÂÀ])/g, "$1\n$3"); // phrase suivante en majuscule
-    cleaned = cleaned.replace(/(:)(\s+)/g, "$1\n"); // après deux-points
-
-    return cleaned.trim();
+    // Simple basic cleaning
+    return text.replace(/`{3}[\s\S]*?`{3}/g, " ").trim();
   };
 
   const handleSend = async () => {
-    if (!input.trim()) return;
-    if (!userId) {
-      alert("Veuillez vous connecter avant d'utiliser le chat.");
-      return;
-    }
+    if (!input.trim() || !userId) return;
 
     const userMessage: Message = { role: "user", content: input };
-    const nextMessages = [...messages, userMessage];
-    setMessages(nextMessages);
+    setMessages(prev => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
-
     await persistMessage(userMessage);
 
     try {
       const response = await fetch(`${BACKEND_URL}/api/chat`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "mistralai/ministral-3-3b",
           user_id: userId,
-          messages: nextMessages.map(({ role, content }) => ({
-            role,
-            content,
-          })),
+          messages: [...messages, userMessage]
+            .filter(m => !m.content.includes("❌") && !m.content.includes("Génération"))
+            .map(({ role, content }) => ({ role, content })),
         }),
       });
 
       const data = await response.json();
-      const reply =
-        data.choices?.[0]?.message?.content ??
-        data.output_text ??
-        "(pas de réponse)";
+      const reply = data.choices?.[0]?.message?.content ?? data.output_text ?? "(pas de réponse)";
       const cleanedReply = sanitizeAssistantReply(reply);
 
-      const assistantMessage: Message = {
-        role: "assistant",
-        content: cleanedReply,
-      };
+      const assistantMessage: Message = { role: "assistant", content: cleanedReply };
+      setMessages(prev => [...prev, assistantMessage]);
+      await persistMessage(assistantMessage);
 
-      setMessages((prev) => [...prev, assistantMessage]);
-      persistMessage(assistantMessage).catch((error) =>
-        console.error("Impossible d'enregistrer la réponse :", error)
-      );
+      // If the reply implies data update (could be sophisticated), we could refresh tabs
+      // For now, only the dedicated button does it reliably or if user asks "updates".
+      // Let's stick to the button for explicit updates.
+
     } catch (error) {
       console.error(error);
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "Erreur de connexion à LM Studio." },
-      ]);
+      setMessages(prev => [...prev, { role: "assistant", content: "Erreur de connexion à LM Studio." }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGenerateProgram = async () => {
+    if (!userId) {
+      alert("Veuillez vous connecter.");
+      return;
+    }
+
+    setIsLoading(true);
+    // Add a temporary system message to UI to show action
+    setMessages(prev => [...prev, { role: "system", content: "Génération du programme en cours... Veuillez patienter." } as Message]);
+
+    try {
+      const response = await axios.post(`${BACKEND_URL}/api/generate-program`, { user_id: userId });
+      const data = response.data;
+
+      if (data.success) {
+        // Add success message from AI
+        const aiMessage: Message = {
+          role: "assistant",
+          content: `✅ Programme mis à jour !\n\n${data.details || "Consultez les onglets ci-dessous pour voir votre nouveau programme."}`
+        };
+        setMessages(prev => [...prev.filter(m => m.content !== "Génération du programme en cours... Veuillez patienter."), aiMessage]);
+        persistMessage(aiMessage);
+
+        // Trigger tabs refresh
+        setRefreshKey(prev => prev + 1);
+      } else {
+        throw new Error(data.error || "Erreur inconnue");
+      }
+    } catch (error) {
+      console.error("Erreur génération programme:", error);
+      setMessages(prev => [...prev.filter(m => m.content !== "Génération du programme en cours... Veuillez patienter."), { role: "assistant", content: "❌ Une erreur est survenue lors de la génération du programme." } as Message]);
     } finally {
       setIsLoading(false);
     }
   };
 
   const renderMessageContent = (content: string) => {
-    const paragraphs = content.split(/\n{2,}/);
-    return paragraphs.map((para, idx) => {
-      const lines = para.split("\n");
-      return (
-        <p key={idx}>
-          {lines.map((line, i) => (
-            <React.Fragment key={i}>
-              {line}
-              {i < lines.length - 1 && <br />}
-            </React.Fragment>
-          ))}
-        </p>
-      );
-    });
+    return content.split('\n').map((line, i) => (
+      <React.Fragment key={i}>
+        {line}
+        <br />
+      </React.Fragment>
+    ));
   };
 
   return (
-    <div className="chat-container">
-      <h1>Chat Santé 💬</h1>
-      <div className="chat-box">
-        {messages
-          .filter((msg) => msg.role !== "system") // Ne pas afficher les messages système
-          .map((msg, index) => (
-            <div key={index} className="chat-message">
-              <strong>{msg.role === "user" ? "Vous" : "Assistant"}:</strong>
-              {renderMessageContent(msg.content)}
+    <div className="main-page-container">
+      {/* Top Section: Chat + User Info */}
+      <div className="top-section">
+
+        {/* Left Column: Chat */}
+        <div className="chat-section">
+          <div className="chat-header-row">
+            <h1>Chat Santé 💬</h1>
+          </div>
+
+          <div className="chat-box">
+            {messages.filter(msg => msg.role !== "system" || msg.content.includes("Génération")).map((msg, index) => (
+              <div key={index} className={`chat-message ${msg.role}`}>
+                <strong>{msg.role === "user" ? "Vous" : msg.role === "system" ? "Système" : "Coach IA"}:</strong>
+                <div className="message-text">{renderMessageContent(msg.content)}</div>
+              </div>
+            ))}
+            {isLoading && <div className="chat-message assistant"><em>L'IA réfléchit...</em></div>}
+          </div>
+
+          <div className="chat-controls">
+            <button
+              className="btn-program-recommend"
+              onClick={handleGenerateProgram}
+              disabled={isLoading}
+              title="Générer un programme personnalisé basé sur vos données"
+            >
+              ✨ Programme Recommandé
+            </button>
+            <div className="chat-input-row">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                placeholder="Posez votre question santé..."
+                disabled={isLoading}
+              />
+              <button onClick={handleSend} disabled={isLoading} className="btn-send">
+                Envoyer
+              </button>
             </div>
-          ))}
-        {isLoading && <div className="chat-message">Assistant: ...</div>}
+          </div>
+        </div>
+
+        {/* Right Column: User Info */}
+        <div className="user-info-section">
+          <UserInfo user={userData} healthData={healthData} />
+        </div>
       </div>
-      <div className="chat-input">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Posez votre question santé..."
-        />
-        <button onClick={handleSend} disabled={isLoading}>
-          {isLoading ? "Envoi..." : "Envoyer"}
-        </button>
+
+      {/* Bottom Section: Tabs */}
+      <div className="bottom-section">
+        <div className="tabs-navigation">
+          <button className={`tab ${activeTab === 'sport' ? 'active' : ''}`} onClick={() => setActiveTab('sport')}>🏃 Sport</button>
+          <button className={`tab ${activeTab === 'nutrition' ? 'active' : ''}`} onClick={() => setActiveTab('nutrition')}>🥗 Alimentation</button>
+          <button className={`tab ${activeTab === 'sleep' ? 'active' : ''}`} onClick={() => setActiveTab('sleep')}>😴 Sommeil</button>
+          <button className={`tab ${activeTab === 'evolution' ? 'active' : ''}`} onClick={() => setActiveTab('evolution')}>📊 Évolution</button>
+        </div>
+
+        <div className="tab-content-area">
+          {activeTab === 'sport' && <TodoList key={`sport-${refreshKey}`} taskType="sport" userId={userId} />}
+          {activeTab === 'nutrition' && <TodoList key={`nutrition-${refreshKey}`} taskType="nutrition" userId={userId} />}
+          {activeTab === 'sleep' && <TodoList key={`sleep-${refreshKey}`} taskType="sleep" userId={userId} />}
+          {activeTab === 'evolution' && <EvolutionTab key={`evolution-${refreshKey}`} userId={userId} />}
+        </div>
       </div>
     </div>
   );

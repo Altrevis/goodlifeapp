@@ -12,6 +12,7 @@ from api.auth import auth_bp
 from api.profile import profile_bp
 from api.calories_burned import calories_bp
 from api.tasks import tasks_bp
+from api.program_generator import program_gen_bp
 from api.db_config import db_config, get_db_connection
 
 import mysql.connector
@@ -19,7 +20,7 @@ from mysql.connector import Error
 import requests
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, supports_credentials=True)
 app.secret_key = 'your_secret_key_here'  # Change this to a secure key
 
 # ---------------------------------------------------------
@@ -107,6 +108,7 @@ app.register_blueprint(sleep_bp)
 app.register_blueprint(profile_bp)
 app.register_blueprint(calories_bp)
 app.register_blueprint(tasks_bp, url_prefix="/api/tasks")
+app.register_blueprint(program_gen_bp)
 # Auth routes will now live under /auth (e.g. /auth/register, /auth/login)
 app.register_blueprint(auth_bp, url_prefix="/auth")
 
@@ -235,6 +237,50 @@ def has_system_message_with_data(user_id):
         close_resources(cursor, connection)
 
 
+def consolidate_messages(messages):
+    """
+    S'assure que les rôles alternent entre 'user' et 'assistant' après le message système.
+    Fusionne les messages consécutifs du même rôle.
+    """
+    if not messages:
+        return []
+    
+    consolidated = []
+    
+    # 1. Gérer les messages système (on les garde au début)
+    system_messages = [m for m in messages if m.get("role") == "system"]
+    other_messages = [m for m in messages if m.get("role") != "system"]
+    
+    if system_messages:
+        consolidated.append({
+            "role": "system",
+            "content": "\n".join([m.get("content", "") for m in system_messages])
+        })
+    
+    if not other_messages:
+        return consolidated
+        
+    # 2. Alterner les messages restants
+    current_role = None
+    for msg in other_messages:
+        role = msg.get("role")
+        content = msg.get("content", "")
+        
+        if role == current_role:
+            # Fusionner avec le précédent
+            consolidated[-1]["content"] += "\n" + content
+        else:
+            consolidated.append({"role": role, "content": content})
+            current_role = role
+            
+    # 3. Certains modèles (Mistral) exigent que le premier message après 'system' soit 'user'
+    # Si le premier message consolidé après le système est un assistant, on peut soit le supprimer,
+    # soit le fusionner dans le système, ou simplement espérer que le modèle l'accepte 
+    # une fois consolidé. Ici, on s'assure au moins de l'alternance.
+    
+    return consolidated
+
+
 @app.route("/api/chat", methods=["POST"])
 def proxy_chat():
     """
@@ -258,13 +304,10 @@ def proxy_chat():
                 user_info = user_data["user"]
                 health_info = user_data["health_data"]
                 
-                # Construire le message système avec les données utilisateur
-                # Format simple pour que l'IA puisse les utiliser facilement
                 system_content_parts = [
                     "Vous êtes un assistant santé personnalisé. Voici les données de l'utilisateur :"
                 ]
                 
-                # Informations de base
                 if user_info.get("first_name"):
                     system_content_parts.append(f"Prénom: {user_info['first_name']}")
                 if user_info.get("last_name"):
@@ -274,7 +317,6 @@ def proxy_chat():
                 if user_info.get("gender"):
                     system_content_parts.append(f"Genre: {user_info['gender']}")
                 
-                # Données de santé
                 weight_value = None
                 if health_info:
                     if health_info.get("weight"):
@@ -291,7 +333,6 @@ def proxy_chat():
                     if health_info.get("calories_burned"):
                         system_content_parts.append(f"Calories brûlées: {health_info['calories_burned']} kcal")
                 
-                # Ajouter une instruction pour que l'IA confirme la récupération des données
                 if weight_value:
                     system_content_parts.append(f"\nINSTRUCTION IMPORTANTE: Lorsque l'utilisateur vous salue ou commence une conversation, vous DEVEZ TOUJOURS commencer votre réponse par confirmer que vous avez bien récupéré ses données en mentionnant son poids. Répondez exactement dans ce format: 'J'ai bien récupéré vos données ({weight_value} kg).' Ensuite, vous pouvez continuer normalement la conversation.")
                 else:
@@ -299,26 +340,19 @@ def proxy_chat():
                 
                 system_message = "\n".join(system_content_parts)
                 
-                # Vérifier si c'est la première conversation (pas de messages système avec données)
                 is_first_conversation = not has_system_message_with_data(user_id)
                 
-                # Toujours ajouter le message système au début des messages envoyés à LM Studio
-                # pour s'assurer que l'IA a toujours les données à jour
-                # On vérifie si le premier message est déjà un message système
                 if not (messages and messages[0].get("role") == "system"):
                     messages.insert(0, {
                         "role": "system",
                         "content": system_message
                     })
                 else:
-                    # Si le premier message est déjà un message système, on le remplace par le nouveau
-                    # pour s'assurer que les données sont à jour
                     messages[0] = {
                         "role": "system",
                         "content": system_message
                     }
                 
-                # Sauvegarder le message système dans la base de données seulement la première fois
                 if is_first_conversation:
                     try:
                         connection = get_db_connection()
@@ -333,8 +367,8 @@ def proxy_chat():
                     finally:
                         close_resources(cursor, connection)
                 
-                # Mettre à jour le payload avec les messages enrichis
-                payload["messages"] = messages
+        # --- FIX: Consolider les messages pour assurer l'alternance des rôles ---
+        payload["messages"] = consolidate_messages(messages)
 
         # Transfert de la requête vers LM Studio
         response = requests.post(

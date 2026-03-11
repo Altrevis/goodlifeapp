@@ -551,9 +551,40 @@ def calculate_user_calories():
                     'message': f'Aucune activité trouvée pour "{activity}"'
                 }), 404
             
+            # Filtrer et trier les résultats pour trouver la meilleure correspondance
+            # Priorité 1: correspondance exacte avec le nom de l'activité
+            # Priorité 2: commence par l'activité recherchée
+            # Priorité 3: le nom contient l'activité recherchée (mais pas dans une liste avec "or")
+            # Priorité 4: autres résultats
+            exact_match = []
+            starts_with_match = []
+            clean_contains = []
+            or_contains = []
+            other_results = []
+            
+            for result in results:
+                result_name = result.get('name', '').lower()
+                activity_lower = activity.lower()
+                
+                if result_name == activity_lower:
+                    exact_match.append(result)
+                elif result_name.startswith(activity_lower):
+                    starts_with_match.append(result)
+                elif activity_lower in result_name:
+                    # Vérifier si c'est dans une énumération avec "or"
+                    if ' or ' in result_name:
+                        or_contains.append(result)
+                    else:
+                        clean_contains.append(result)
+                else:
+                    other_results.append(result)
+            
+            # Prendre le meilleur résultat en priorité
+            sorted_results = exact_match + starts_with_match + clean_contains + or_contains + other_results
+            
             # Enrichir avec les infos utilisateur
             enriched_results = []
-            for result in results:
+            for result in sorted_results:
                 enriched_result = result.copy()
                 enriched_result['weight_kg'] = weight_kg
                 enriched_result['user_id'] = user_id

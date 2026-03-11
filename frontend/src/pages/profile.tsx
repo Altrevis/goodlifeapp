@@ -103,7 +103,7 @@ const ProfilePage: React.FC = () => {
   const fetchProfile = async (id: number) => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/profile/${id}`);
+      const response = await fetch(`http://localhost:5000/profile?user_id=${id}`);
       
       if (!response.ok) {
         throw new Error('Erreur lors de la récupération du profil');
@@ -196,34 +196,16 @@ const ProfilePage: React.FC = () => {
       return;
     }
 
-    // Ne garder que les valeurs qui ont changé et qui ne sont pas vides/null
-    const dataToSend: any = {};
-    
-    if (formData.weight !== null && formData.weight !== undefined && formData.weight !== healthData.weight) {
-      dataToSend.weight = formData.weight;
-    }
-    if (formData.height !== null && formData.height !== undefined && formData.height !== healthData.height) {
-      dataToSend.height = formData.height;
-    }
-    if (formData.heart_rate !== null && formData.heart_rate !== undefined && formData.heart_rate !== healthData.heart_rate) {
-      dataToSend.heart_rate = formData.heart_rate;
-    }
-    if (formData.sleep_hours !== null && formData.sleep_hours !== undefined && formData.sleep_hours !== healthData.sleep_hours) {
-      dataToSend.sleep_hours = formData.sleep_hours;
-    }
-    if (formData.calories_burned !== null && formData.calories_burned !== undefined && formData.calories_burned !== healthData.calories_burned) {
-      dataToSend.calories_burned = formData.calories_burned;
-    }
-    if (formData.steps !== null && formData.steps !== undefined && formData.steps !== healthData.steps) {
-      dataToSend.steps = formData.steps;
-    }
-
-    // Si aucune donnée n'a changé, ne pas faire de requête
-    if (Object.keys(dataToSend).length === 0) {
-      setSuccess('Aucune modification détectée');
-      setTimeout(() => setSuccess(null), 2000);
-      return;
-    }
+    // Envoyer toutes les données actuelles (modifiées ou non) pour éviter d'écraser avec NULL
+    const dataToSend: any = {
+      weight: formData.weight !== null && formData.weight !== undefined ? formData.weight : healthData.weight,
+      height: formData.height !== null && formData.height !== undefined ? formData.height : healthData.height,
+      heart_rate: formData.heart_rate !== null && formData.heart_rate !== undefined ? formData.heart_rate : healthData.heart_rate,
+      sleep_hours: formData.sleep_hours !== null && formData.sleep_hours !== undefined ? formData.sleep_hours : healthData.sleep_hours,
+      calories_burned: formData.calories_burned !== null && formData.calories_burned !== undefined ? formData.calories_burned : healthData.calories_burned,
+      steps: formData.steps !== null && formData.steps !== undefined ? formData.steps : healthData.steps,
+      user_id: userId
+    };
 
     try {
       const response = await fetch(`http://localhost:5000/profile/health`, {
@@ -231,7 +213,7 @@ const ProfilePage: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ...dataToSend, user_id: userId }),
+        body: JSON.stringify(dataToSend),
       });
 
       if (!response.ok) {
@@ -324,8 +306,8 @@ const ProfilePage: React.FC = () => {
                 className="activity-select"
               >
                 <option value="">-- Sélectionner une activité --</option>
-                {activities.map((activity) => (
-                  <option key={activity.value} value={activity.value}>
+                {activities.map((activity, index) => (
+                  <option key={`${activity.value}-${index}`} value={activity.value}>
                     {activity.label}
                   </option>
                 ))}
@@ -355,8 +337,6 @@ const ProfilePage: React.FC = () => {
 
             {caloriesResult && (
               <div className="calories-result">
-                <h4>Résultat :</h4>
-                <p><strong>{caloriesResult.name}</strong></p>
                 <p>Durée : {caloriesResult.duration_minutes} minutes</p>
                 <p>Calories/heure : {caloriesResult.calories_per_hour} kcal</p>
                 <p className="total-calories">Total : <strong>{caloriesResult.total_calories} kcal</strong></p>

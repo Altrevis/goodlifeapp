@@ -19,8 +19,8 @@ def register():
     """
     Endpoint d'inscription d'utilisateur.
 
-    URL finale appelée depuis le front : /auth/register
-    (car ce blueprint est enregistré sans prefix explicite).
+    URL finale appelée depuis le front : /api/user/register
+    (car ce blueprint est enregistré avec le préfixe /api/user).
     """
     data = request.get_json(silent=True) or {}
 

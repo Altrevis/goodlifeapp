@@ -109,8 +109,8 @@ app.register_blueprint(profile_bp)
 app.register_blueprint(calories_bp)
 app.register_blueprint(tasks_bp, url_prefix="/api/tasks")
 app.register_blueprint(program_gen_bp)
-# Auth routes will now live under /auth (e.g. /auth/register, /auth/login)
-app.register_blueprint(auth_bp, url_prefix="/auth")
+# Auth routes will now live under /api/user (e.g. /api/user/register, /api/user/login)
+app.register_blueprint(auth_bp, url_prefix="/api/user")
 
 
 # ---------------------------------------------------------

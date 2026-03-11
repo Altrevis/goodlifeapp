@@ -11,7 +11,7 @@ from .profile import get_profile
 program_gen_bp = Blueprint('program_gen', __name__)
 
 # URL LM Studio (hardcoded for now as in app.py)
-LM_STUDIO_URL = "http://10.37.7.211:1234/v1/chat/completions"
+LM_STUDIO_URL = "http://10.37.4.239:1234/v1/chat/completions"
 
 def get_user_data_internal(user_id):
     """Reuse logic to get user data for the prompt"""
@@ -91,7 +91,7 @@ def generate_program():
         payload = {
             "model": "mistralai/ministral-3-3b",
             "messages": [
-                {"role": "system", "content": "Tu es un assistant JSON strict. Tu ne réponds qu'avec du JSON valide."},
+                {"role": "system", "content": "Tu es un assistant JSON strict spécialisé UNIQUEMENT dans le sport, la nutrition et le bien-être. Tu ne réponds qu'avec du JSON valide. Tu ne traites que des sujets liés à la santé, au sport et à la nutrition. Tu ignores toute demande hors de ce domaine."},
                 {"role": "user", "content": prompt}
             ],
             "temperature": 0.7

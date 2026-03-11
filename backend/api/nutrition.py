@@ -1,9 +1,44 @@
 from flask import Blueprint, jsonify, request
 import requests
 import re
+import time
 
 # Blueprint attendu par app.py : nutrition_bp
 nutrition_bp = Blueprint('nutrition', __name__, url_prefix='/api')
+
+# Configuration headers pour OpenFoodFacts (requis par leur politique d'utilisation)
+OFF_HEADERS = {
+    # Format recommandé : "app_name/app_version (URL ou contact)"
+    "User-Agent": "GoodLifeApp/1.0 (https://github.com/Altrevis/goodlifeapp)"
+}
+
+# Endpoint OFF v1 (texte libre) /cgi/search.pl
+# Note: la recherche v2 ne fait pas du full-text (voir cheatsheet OFF).
+OFF_SEARCH_V1_URL = "https://world.openfoodfacts.org/cgi/search.pl"
+
+# Cache simple en mémoire pour stabiliser la recherche OFF (TTL)
+_OFF_SEARCH_CACHE: dict[str, dict] = {}
+_OFF_SEARCH_CACHE_TTL_SECONDS = 60 * 60  # 1h
+
+
+def _cache_get(query: str):
+    key = (query or "").strip().lower()
+    if not key:
+        return None
+    entry = _OFF_SEARCH_CACHE.get(key)
+    if not entry:
+        return None
+    if (time.time() - entry.get("ts", 0)) > _OFF_SEARCH_CACHE_TTL_SECONDS:
+        _OFF_SEARCH_CACHE.pop(key, None)
+        return None
+    return entry.get("payload")
+
+
+def _cache_set(query: str, payload: dict):
+    key = (query or "").strip().lower()
+    if not key:
+        return
+    _OFF_SEARCH_CACHE[key] = {"ts": time.time(), "payload": payload}
 
 def _parse_serving_grams(serving_size: str):
     """
@@ -46,7 +81,7 @@ def get_nutrition_by_barcode(barcode):
     """
     try:
         url = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
-        r = requests.get(url, timeout=10)
+        r = requests.get(url, headers=OFF_HEADERS, timeout=15)
         if r.status_code != 200:
             return jsonify({"error": "Erreur OpenFoodFacts", "status": r.status_code, "details": r.text}), r.status_code
         data = r.json()
@@ -112,47 +147,127 @@ def get_nutrition_by_barcode(barcode):
 @nutrition_bp.route('/nutrition_search/<string:query>', methods=['GET'])
 def search_nutrition(query):
     """
-    Recherche textuelle via OpenFoodFacts (sans clé)
+    Recherche textuelle via OpenFoodFacts (v1 /cgi/search.pl, full-text)
     Exemple: GET /api/nutrition_search/pomme
     Retourne jusqu'à 5 résultats simplifiés avec nutriments principaux.
     """
+    cached = _cache_get(query)
     try:
-        url = "https://world.openfoodfacts.org/cgi/search.pl"
+        # Retry léger (OFF search peut être lent) + timeout(connect, read)
+        last_exc = None
+        r = None
         params = {
             "search_terms": query,
             "search_simple": 1,
             "action": "process",
             "json": 1,
-            "page_size": 5
+            "page_size": 5,
         }
-        r = requests.get(url, params=params, timeout=10)
+        for attempt in range(2):
+            try:
+                r = requests.get(
+                    OFF_SEARCH_V1_URL, params=params, headers=OFF_HEADERS, timeout=(5, 30)
+                )
+                break
+            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+                last_exc = e
+                time.sleep(0.4 * (attempt + 1))
+        if r is None:
+            raise last_exc
+
         if r.status_code != 200:
-            return jsonify({"error": "Erreur OpenFoodFacts", "status": r.status_code}), r.status_code
-        data = r.json()
-        products = data.get("products", [])[:5]
+            return (
+                jsonify({"error": "Erreur OpenFoodFacts", "status": r.status_code, "details": r.text}),
+                r.status_code,
+            )
+
+        try:
+            data = r.json()
+        except ValueError as e:
+            return (
+                jsonify(
+                    {
+                        "error": "Réponse invalide d'OpenFoodFacts",
+                        "details": str(e),
+                        "raw_snippet": r.text[:500],
+                    }
+                ),
+                502,
+            )
+
+        products = (data.get("products") or [])[:5]
         results = []
         for p in products:
             nutr = p.get("nutriments", {}) or {}
-            results.append({
-                "name": p.get("product_name"),
-                "brand": p.get("brands"),
-                "barcode": p.get("code"),
-                "serving_size": p.get("serving_size"),
-                "calories_kcal_100g": nutr.get("energy-kcal_100g") or nutr.get("energy-kj_100g"),
-                "proteins_100g": nutr.get("proteins_100g"),
-                "fat_100g": nutr.get("fat_100g"),
-                "saturated_fat_100g": nutr.get("saturated-fat_100g"),
-                "carbohydrates_100g": nutr.get("carbohydrates_100g"),
-                "sugars_100g": nutr.get("sugars_100g"),
-                "fiber_100g": nutr.get("fiber_100g") or nutr.get("dietary-fiber_100g"),
-                "salt_100g": nutr.get("salt_100g"),
-                "image": p.get("image_small_url")
-            })
+            results.append(
+                {
+                    "name": p.get("product_name"),
+                    "brand": p.get("brands"),
+                    "barcode": p.get("code"),
+                    "serving_size": p.get("serving_size"),
+                    "calories_kcal_100g": nutr.get("energy-kcal_100g")
+                    or nutr.get("energy-kj_100g"),
+                    "proteins_100g": nutr.get("proteins_100g"),
+                    "fat_100g": nutr.get("fat_100g"),
+                    "saturated_fat_100g": nutr.get("saturated-fat_100g"),
+                    "carbohydrates_100g": nutr.get("carbohydrates_100g"),
+                    "sugars_100g": nutr.get("sugars_100g"),
+                    "fiber_100g": nutr.get("fiber_100g")
+                    or nutr.get("dietary-fiber_100g"),
+                    "salt_100g": nutr.get("salt_100g"),
+                    "image": p.get("image_small_url"),
+                }
+            )
+
         if not results:
             return jsonify({"message": "Aucun produit trouvé"}), 404
-        return jsonify({"query": query, "results": results})
+
+        payload = {"query": query, "results": results}
+        _cache_set(query, payload)
+        return jsonify(payload)
+
+    except requests.exceptions.Timeout as e:
+        if cached:
+            cached_payload = dict(cached)
+            cached_payload["cached"] = True
+            return jsonify(cached_payload), 200
+        return (
+            jsonify(
+                {
+                    "error": "Délai dépassé lors de l'appel à OpenFoodFacts",
+                    "details": str(e),
+                }
+            ),
+            504,
+        )
+    except requests.exceptions.ConnectionError as e:
+        if cached:
+            cached_payload = dict(cached)
+            cached_payload["cached"] = True
+            return jsonify(cached_payload), 200
+        return (
+            jsonify(
+                {
+                    "error": "Erreur de connexion à OpenFoodFacts",
+                    "details": str(e),
+                }
+            ),
+            503,
+        )
     except requests.exceptions.RequestException as e:
-        return jsonify({"error": "Erreur réseau", "details": str(e)}), 500
+        if cached:
+            cached_payload = dict(cached)
+            cached_payload["cached"] = True
+            return jsonify(cached_payload), 200
+        return (
+            jsonify(
+                {
+                    "error": "Erreur réseau avec OpenFoodFacts",
+                    "details": str(e),
+                }
+            ),
+            502,
+        )
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

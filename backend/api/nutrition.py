@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify
 import requests
 import re
 import time
@@ -12,9 +12,7 @@ OFF_HEADERS = {
     "User-Agent": "GoodLifeApp/1.0 (https://github.com/Altrevis/goodlifeapp)"
 }
 
-# Endpoint OFF v1 (texte libre) /cgi/search.pl
-# Note: la recherche v2 ne fait pas du full-text (voir cheatsheet OFF).
-OFF_SEARCH_V1_URL = "https://world.openfoodfacts.org/cgi/search.pl"
+OFF_SEARCH_URL = "https://world.openfoodfacts.org/cgi/search.pl"
 
 # Cache simple en mémoire pour stabiliser la recherche OFF (TTL)
 _OFF_SEARCH_CACHE: dict[str, dict] = {}
@@ -32,6 +30,15 @@ def _cache_get(query: str):
         _OFF_SEARCH_CACHE.pop(key, None)
         return None
     return entry.get("payload")
+
+
+def _cached_or_error(cached, error_msg: str, details, status: int):
+    """Retourne le cache si dispo, sinon l'erreur."""
+    if cached:
+        out = dict(cached)
+        out["cached"] = True
+        return jsonify(out), 200
+    return jsonify({"error": error_msg, "details": str(details)}), status
 
 
 def _cache_set(query: str, payload: dict):
@@ -105,11 +112,8 @@ def get_nutrition_by_barcode(barcode):
 
         serving_size_str = product.get("serving_size") or product.get("serving_quantity")
         serving_grams = None
-        if isinstance(serving_size_str, (int, float)):
-            # some products use numeric serving_quantity but not grams
-            serving_grams = None
-        else:
-            serving_grams = _parse_serving_grams(str(serving_size_str)) if serving_size_str else None
+        if not isinstance(serving_size_str, (int, float)) and serving_size_str:
+            serving_grams = _parse_serving_grams(str(serving_size_str))
 
         nutriments_serving = _nutriments_for_serving(nutriments, serving_grams)
 
@@ -134,7 +138,7 @@ def get_nutrition_by_barcode(barcode):
             "nutriments_100g": common,
             "nutriments_raw_100g": nutriments,
             "nutriments_serving": nutriments_serving,
-            "nutriments_raw_serving": nutriments_serving  # same structure, kept for clarity
+            "nutriments_raw_serving": nutriments_serving
         }
 
         return jsonify(details)
@@ -163,15 +167,16 @@ def search_nutrition(query):
             "json": 1,
             "page_size": 5,
         }
-        for attempt in range(2):
+        for attempt in range(3):
             try:
                 r = requests.get(
-                    OFF_SEARCH_V1_URL, params=params, headers=OFF_HEADERS, timeout=(5, 30)
+                    OFF_SEARCH_URL, params=params, headers=OFF_HEADERS, timeout=(8, 45)
                 )
                 break
             except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
                 last_exc = e
-                time.sleep(0.4 * (attempt + 1))
+                if attempt < 2:
+                    time.sleep(0.5 * (attempt + 1))
         if r is None:
             raise last_exc
 
@@ -227,47 +232,11 @@ def search_nutrition(query):
         return jsonify(payload)
 
     except requests.exceptions.Timeout as e:
-        if cached:
-            cached_payload = dict(cached)
-            cached_payload["cached"] = True
-            return jsonify(cached_payload), 200
-        return (
-            jsonify(
-                {
-                    "error": "Délai dépassé lors de l'appel à OpenFoodFacts",
-                    "details": str(e),
-                }
-            ),
-            504,
-        )
+        return _cached_or_error(cached, "Délai dépassé lors de l'appel à OpenFoodFacts", e, 504)
     except requests.exceptions.ConnectionError as e:
-        if cached:
-            cached_payload = dict(cached)
-            cached_payload["cached"] = True
-            return jsonify(cached_payload), 200
-        return (
-            jsonify(
-                {
-                    "error": "Erreur de connexion à OpenFoodFacts",
-                    "details": str(e),
-                }
-            ),
-            503,
-        )
+        return _cached_or_error(cached, "Erreur de connexion à OpenFoodFacts", e, 503)
     except requests.exceptions.RequestException as e:
-        if cached:
-            cached_payload = dict(cached)
-            cached_payload["cached"] = True
-            return jsonify(cached_payload), 200
-        return (
-            jsonify(
-                {
-                    "error": "Erreur réseau avec OpenFoodFacts",
-                    "details": str(e),
-                }
-            ),
-            502,
-        )
+        return _cached_or_error(cached, "Erreur réseau avec OpenFoodFacts", e, 502)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

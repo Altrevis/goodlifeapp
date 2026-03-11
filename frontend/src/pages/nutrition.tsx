@@ -1,6 +1,35 @@
 import React, { useState } from 'react';
 import './css/nutrition.css';
 
+const CACHE_KEY = 'nutrition_search_cache';
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1h
+
+function getCachedResults(q: string): any[] | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    const key = (q || '').trim().toLowerCase();
+    const entry = data[key];
+    if (!entry || !Array.isArray(entry.results)) return null;
+    if (Date.now() - (entry.ts || 0) > CACHE_TTL_MS) return null;
+    return entry.results;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedResults(q: string, results: any[]) {
+  try {
+    const key = (q || '').trim().toLowerCase();
+    if (!key) return;
+    const raw = localStorage.getItem(CACHE_KEY) || '{}';
+    const data = JSON.parse(raw);
+    data[key] = { results, ts: Date.now() };
+    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+  } catch {}
+}
+
 const Nutrition: React.FC = () => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
@@ -25,18 +54,28 @@ const Nutrition: React.FC = () => {
     e.preventDefault();
     if (!query.trim()) return;
 
-    setLoading(true);
     setError('');
-    setResults([]);
+    const cached = getCachedResults(query);
+    if (cached && cached.length > 0) {
+      setResults(cached);
+    } else {
+      setResults([]);
+    }
+    setLoading(true);
     try {
       const response = await fetch(`http://localhost:5000/api/nutritionix/search/${encodeURIComponent(query)}`);
       if (response.ok) {
         const data = await response.json();
         const items = data.results || [];
         setResults(items);
+        setCachedResults(query, items);
       } else {
         const err = await response.json().catch(() => ({} as any));
-        setError(err.message || 'Aucun résultat trouvé');
+        const msg =
+          (err && (err.error || err.message)) ||
+          `Erreur serveur (${response.status})` ||
+          'Aucun résultat trouvé';
+        setError(msg);
       }
     } catch (err) {
       setError('Erreur lors de la recherche');

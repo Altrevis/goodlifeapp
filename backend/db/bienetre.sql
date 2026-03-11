@@ -217,6 +217,7 @@ CREATE TABLE `tasks` (
   `target_duration_hours` float DEFAULT NULL COMMENT 'Heures de sommeil cibles',
   `target_bedtime` time DEFAULT NULL COMMENT 'Heure de coucher cible',
   `target_waketime` time DEFAULT NULL COMMENT 'Heure de réveil cible',
+  `weekly_quota` int DEFAULT '7' COMMENT 'Nombre de fois par semaine',
   `is_active` tinyint(1) DEFAULT '1' COMMENT 'Tâche active ou archivée',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

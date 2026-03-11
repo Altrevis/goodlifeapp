@@ -3,6 +3,7 @@ import mysql.connector
 from mysql.connector import Error
 from datetime import datetime
 import requests
+from flask_login import current_user
 
 from api.db_config import db_config 
 
@@ -189,9 +190,15 @@ ACTIVITIES_FR_TO_EN = {
 }
 
 
-@profile_bp.route('/profile/<int:user_id>', methods=['GET'])
-def get_profile(user_id):
+@profile_bp.route('/profile', methods=['GET'])
+def get_profile():
     """Récupère les dernières données de santé de l'utilisateur"""
+    # Récupérer l'user_id depuis les paramètres ou l'utilisateur connecté
+    user_id = request.args.get('user_id', type=int) or (current_user.id if current_user.is_authenticated else None)
+    
+    if not user_id:
+        return jsonify({"error": "user_id requis ou utilisateur non authentifié"}), 401
+    
     try:
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor(dictionary=True)
@@ -234,9 +241,16 @@ def get_profile(user_id):
             conn.close()
 
 
-@profile_bp.route('/profile/<int:user_id>/health', methods=['POST'])
-def update_health_data(user_id):
+@profile_bp.route('/profile/health', methods=['POST'])
+def update_health_data():
     """Met à jour ou ajoute les données de santé de l'utilisateur"""
+    # Récupérer l'user_id depuis les paramètres, le body ou l'utilisateur connecté
+    user_id = request.json.get('user_id') if request.json else None
+    user_id = user_id or request.args.get('user_id', type=int) or (current_user.id if current_user.is_authenticated else None)
+    
+    if not user_id:
+        return jsonify({"error": "user_id requis ou utilisateur non authentifié"}), 401
+    
     conn = None
     cursor = None
     try:
@@ -341,9 +355,16 @@ def update_health_data(user_id):
             conn.close()
 
 
-@profile_bp.route('/profile/<int:user_id>', methods=['PUT'])
-def update_profile(user_id):
+@profile_bp.route('/profile', methods=['PUT'])
+def update_profile():
     """Met à jour les informations de base de l'utilisateur"""
+    # Récupérer l'user_id depuis les paramètres, le body ou l'utilisateur connecté
+    user_id = request.json.get('user_id') if request.json else None
+    user_id = user_id or request.args.get('user_id', type=int) or (current_user.id if current_user.is_authenticated else None)
+    
+    if not user_id:
+        return jsonify({"error": "user_id requis ou utilisateur non authentifié"}), 401
+    
     try:
         data = request.json
         
@@ -397,9 +418,15 @@ def update_profile(user_id):
             conn.close()
 
 
-@profile_bp.route('/profile/<int:user_id>/history', methods=['GET'])
-def get_health_history(user_id):
+@profile_bp.route('/profile/history', methods=['GET'])
+def get_health_history():
     """Récupère l'historique des données de santé"""
+    # Récupérer l'user_id depuis les paramètres ou l'utilisateur connecté
+    user_id = request.args.get('user_id', type=int) or (current_user.id if current_user.is_authenticated else None)
+    
+    if not user_id:
+        return jsonify({"error": "user_id requis ou utilisateur non authentifié"}), 401
+    
     try:
         limit = request.args.get('limit', 30, type=int)
         
@@ -428,8 +455,8 @@ def get_health_history(user_id):
             conn.close()
 
 
-@profile_bp.route('/profile/<int:user_id>/calculate-calories', methods=['POST'])
-def calculate_user_calories(user_id):
+@profile_bp.route('/profile/calculate-calories', methods=['POST'])
+def calculate_user_calories():
     """
     Calcule les calories brûlées pour un utilisateur en fonction de son activité.
     
@@ -438,10 +465,18 @@ def calculate_user_calories(user_id):
         - duration (required): Durée en minutes
         - use_profile_weight (optional): Si true, utilise le poids du profil utilisateur
         - weight (optional): Poids en kg (prioritaire sur use_profile_weight)
+        - user_id (optional): ID de l'utilisateur (sinon utilise current_user)
     
     Returns:
         Calories brûlées avec toutes les informations de l'activité
     """
+    # Récupérer l'user_id depuis les paramètres, le body ou l'utilisateur connecté
+    user_id = request.json.get('user_id') if request.json else None
+    user_id = user_id or request.args.get('user_id', type=int) or (current_user.id if current_user.is_authenticated else None)
+    
+    if not user_id:
+        return jsonify({"error": "user_id requis ou utilisateur non authentifié"}), 401
+    
     conn = None
     cursor = None
     try:
@@ -557,14 +592,15 @@ def calculate_user_calories(user_id):
             conn.close()
 
 
-@profile_bp.route('/profile/<int:user_id>/activities', methods=['GET'])
-def get_available_activities(user_id):
+@profile_bp.route('/profile/activities', methods=['GET'])
+def get_available_activities():
     """
     Récupère la liste de toutes les activités sportives disponibles en français.
     Endpoint pratique pour afficher une liste déroulante dans le frontend.
     
     Note: L'endpoint /caloriesburnedactivities de l'API Ninjas est premium,
     donc nous utilisons une liste prédéfinie d'activités courantes.
+    Note: user_id n'est pas nécessaire pour cet endpoint (liste statique)
     """
     try:
         # Retourner les activités avec noms français et valeurs anglaises

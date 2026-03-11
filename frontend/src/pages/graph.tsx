@@ -78,7 +78,7 @@ const Graph: React.FC = () => {
     if (!userId) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/profile/${userId}/history?limit=30`);
+      const response = await fetch(`http://localhost:5000/profile/history?user_id=${userId}&limit=30`);
       if (!response.ok) throw new Error('Erreur lors de la récupération des données');
       
       const data = await response.json();
@@ -119,7 +119,7 @@ const Graph: React.FC = () => {
     if (!userId) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/profile/${userId}/history?limit=30`);
+      const response = await fetch(`http://localhost:5000/profile/history?user_id=${userId}&limit=30`);
       if (!response.ok) throw new Error('Erreur lors de la récupération des tendances');
       
       const data = await response.json();

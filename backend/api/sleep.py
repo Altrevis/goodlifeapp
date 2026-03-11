@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from mysql.connector import Error
+from flask_login import current_user
 from .db_config import db_config
 
 sleep_bp = Blueprint('sleep', __name__)
@@ -7,8 +8,13 @@ sleep_bp = Blueprint('sleep', __name__)
 # ---------------------------------------------------------
 # SLEEP API (MYSQL) - Score local
 # ---------------------------------------------------------
-@sleep_bp.route('/api/sleep/<int:user_id>', methods=['GET', 'POST'])
-def get_sleep(user_id):
+@sleep_bp.route('/api/sleep', methods=['GET', 'POST'])
+def get_sleep():
+    # Récupérer l'user_id depuis les paramètres ou l'utilisateur connecté
+    user_id = request.args.get('user_id', type=int) or (current_user.id if current_user.is_authenticated else None)
+    
+    if not user_id:
+        return jsonify({"error": "user_id requis ou utilisateur non authentifié"}), 401
     conn = None
     cursor = None
     try:
@@ -82,6 +88,11 @@ def get_sleep(user_id):
 
             if not all([date, duration, quality]):
                 return jsonify({"error": "Missing data"}), 400
+
+            # Vérifier que l'utilisateur existe
+            cursor.execute("SELECT id FROM users WHERE id = %s", (user_id,))
+            if not cursor.fetchone():
+                return jsonify({"error": f"User with ID {user_id} does not exist"}), 404
 
             cursor.execute("""
                 INSERT INTO sleep_data (user_id, date, duration, quality)

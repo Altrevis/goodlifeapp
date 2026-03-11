@@ -55,8 +55,8 @@ const Chat: React.FC = () => {
 
   const fetchUserProfile = async (uid: number) => {
     try {
-      // Endpoint from profile.py: /profile/<user_id>
-      const response = await axios.get(`${BACKEND_URL}/profile/${uid}`);
+      // Endpoint from profile.py: /profile
+      const response = await axios.get(`${BACKEND_URL}/profile?user_id=${uid}`);
       if (response.data) {
         setUserData(response.data.user);
         setHealthData(response.data.health_data);

@@ -88,7 +88,7 @@ const ProfilePage: React.FC = () => {
 
   const fetchActivities = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:5000/profile/${id}/activities`);
+      const response = await fetch(`http://localhost:5000/profile/activities`);
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.activities) {
@@ -149,12 +149,13 @@ const ProfilePage: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch(`http://localhost:5000/profile/${userId}/calculate-calories`, {
+      const response = await fetch(`http://localhost:5000/profile/calculate-calories`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          user_id: userId,
           activity: selectedActivity,
           duration: duration,
           use_profile_weight: true
@@ -225,12 +226,12 @@ const ProfilePage: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/profile/${userId}/health`, {
+      const response = await fetch(`http://localhost:5000/profile/health`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(dataToSend),
+        body: JSON.stringify({ ...dataToSend, user_id: userId }),
       });
 
       if (!response.ok) {

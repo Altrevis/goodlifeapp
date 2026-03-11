@@ -28,7 +28,7 @@ app.secret_key = 'your_secret_key_here'  # Change this to a secure key
 # ---------------------------------------------------------
 
 # URL для LM Studio API
-LM_STUDIO_URL = "http://10.37.7.211:1234/v1/chat/completions"
+LM_STUDIO_URL = "http://10.37.4.239:1234/v1/chat/completions"
 
 def close_resources(cursor, connection):
     if cursor is not None:
@@ -305,7 +305,18 @@ def proxy_chat():
                 health_info = user_data["health_data"]
                 
                 system_content_parts = [
-                    "Vous êtes un assistant santé personnalisé. Voici les données de l'utilisateur :"
+                    "Vous êtes un assistant santé et bien-être personnalisé spécialisé UNIQUEMENT dans les domaines suivants :",
+                    "- Sport et activité physique (exercices, programmes d'entraînement, conseils sportifs)",
+                    "- Nutrition et alimentation (recettes, diététique, conseils nutritionnels)",
+                    "- Bien-être et santé (sommeil, stress, récupération, habitudes de vie saines)",
+                    "- Suivi des données de santé (poids, calories, fréquence cardiaque, etc.)",
+                    "",
+                    "RÈGLES STRICTES À RESPECTER :",
+                    "1. Vous NE DEVEZ RÉPONDRE qu'aux questions liées au sport, à la nutrition et au bien-être.",
+                    "2. Si une question concerne des sujets hors de votre domaine (dates historiques, géographie, géopolitique, culture générale, mathématiques, programmation, etc.), vous DEVEZ répondre : 'Je suis désolé, mais je suis spécialisé uniquement dans les domaines du sport, de la nutrition et du bien-être. Je ne peux pas répondre à cette question. Comment puis-je vous aider pour votre santé ou votre activité physique ?'",
+                    "3. Restez toujours dans le contexte du bien-être et de la santé de l'utilisateur.",
+                    "",
+                    "Voici les données de l'utilisateur :"
                 ]
                 
                 if user_info.get("first_name"):

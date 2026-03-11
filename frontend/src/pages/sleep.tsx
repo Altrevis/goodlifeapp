@@ -33,15 +33,32 @@ const Sleep: React.FC = () => {
   const [formData, setFormData] = useState({ date: "", duration: "", quality: "" });
   const [message, setMessage] = useState("");
 
-  const userId = 1; // Assuming user ID 1 for now
+  const getUserId = (): number | null => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr);
+        return userData.id || null;
+      } catch (e) {
+        console.error('Erreur lors de la lecture du user depuis localStorage:', e);
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const userId = getUserId();
 
   useEffect(() => {
-    fetchSleepData();
-  }, []);
+    if (userId) {
+      fetchSleepData();
+    }
+  }, [userId]);
 
   const fetchSleepData = async () => {
+    if (!userId) return;
     try {
-      const response = await fetch(`http://localhost:5000/api/sleep/${userId}`);
+      const response = await fetch(`http://localhost:5000/api/sleep?user_id=${userId}`);
       const data = await response.json();
       if (data.last_7_days) {
         setSleepData(data.last_7_days.map((item: any) => ({
@@ -57,8 +74,12 @@ const Sleep: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!userId) {
+      setMessage("Erreur: utilisateur non connecté");
+      return;
+    }
     try {
-      const response = await fetch(`http://localhost:5000/api/sleep/${userId}`, {
+      const response = await fetch(`http://localhost:5000/api/sleep?user_id=${userId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -35,6 +35,10 @@ interface Task {
   recipe_name?: string;
   target_calories?: number;
   target_duration_hours?: number;
+  target_bedtime?: string;
+  target_waketime?: string;
+  weekly_quota: number;
+  weekly_completions: number;
   is_active: number;
 }
 
@@ -45,6 +49,7 @@ interface Completion {
   duration_minutes?: number;
   quality_rating: number;
   actual_value?: number;
+  task_id: number;
 }
 
 interface TodoListProps {
@@ -64,8 +69,16 @@ const TodoList: React.FC<TodoListProps> = ({ taskType, userId }) => {
     target_duration_minutes: 30,
     recipe_name: '',
     target_calories: 0,
-    target_duration_hours: 8
+    target_duration_hours: 8,
+    weekly_quota: 7
   });
+
+  const [completeModalTask, setCompleteModalTask] = useState<number | null>(null);
+  const [completeDuration, setCompleteDuration] = useState("");
+  const [completeValue, setCompleteValue] = useState("");
+  const [completeDate, setCompleteDate] = useState(new Date().toISOString().split('T')[0]);
+  
+  const [deleteModalTask, setDeleteModalTask] = useState<number | null>(null);
 
   const loadTasks = useCallback(async () => {
     try {
@@ -110,7 +123,7 @@ const TodoList: React.FC<TodoListProps> = ({ taskType, userId }) => {
     e.preventDefault();
     if (!userId) return;
     try {
-      const response = await axios.post(`${API_URL}/${taskType}/tasks`, { ...newTask, user_id: userId }, {
+      const response = await axios.post(`${API_URL}/${taskType}/tasks`, { ...newTask, user_id: userId, weekly_quota: newTask.weekly_quota }, {
         withCredentials: true
       });
       if (response.data.success) {
@@ -123,26 +136,43 @@ const TodoList: React.FC<TodoListProps> = ({ taskType, userId }) => {
     }
   };
 
-  const handleCompleteTask = async (taskId: number) => {
-    const duration = taskType === 'sport' ? prompt('Durée réelle en minutes :') : null;
-    const value = taskType === 'sleep' ? prompt('Heures de sommeil réelles :') : (taskType === 'nutrition' ? prompt('Calories estimées :') : null);
-    const rating = prompt('Note de qualité (1 à 10) :');
+  const handleCompleteClick = async (taskId: number) => {
+    setCompleteModalTask(taskId);
+    setCompleteDuration("");
+    setCompleteValue("");
+    setCompleteDate(new Date().toISOString().split('T')[0]);
 
-    if (rating && userId) {
+    if (taskType === 'sleep' && userId) {
+      try {
+        const profileRes = await axios.get(`http://localhost:5000/api/profile?user_id=${userId}`, {
+          withCredentials: true
+        });
+        const sleepHours = profileRes.data?.health_data?.sleep_hours;
+        if (sleepHours) {
+          setCompleteValue(String(sleepHours));
+        }
+      } catch (error) {
+        console.error('Erreur chargement profil pour sommeil:', error);
+      }
+    }
+  };
+
+  const submitCompleteTask = async () => {
+    if (completeModalTask !== null && userId) {
       try {
         await axios.post(`${API_URL}/completions`, {
           user_id: userId,
           task_type: taskType,
-          task_id: taskId,
-          duration_minutes: duration ? parseInt(duration) : null,
-          actual_value: value ? parseFloat(value) : null,
-          quality_rating: parseInt(rating),
+          task_id: completeModalTask,
+          duration_minutes: taskType === 'sport' ? parseInt(completeDuration) : null,
+          actual_value: taskType === 'sleep' || taskType === 'nutrition' ? parseFloat(completeValue) : null,
+          quality_rating: 5, // Default rating as quality logic was removed
           notes: '',
-          completion_date: new Date().toISOString().split('T')[0]
+          completion_date: completeDate
         }, {
           withCredentials: true
         });
-        alert('Tâche complétée ! ✓');
+        setCompleteModalTask(null);
         loadData();
       } catch (error) {
         console.error('Erreur complétion:', error);
@@ -150,12 +180,17 @@ const TodoList: React.FC<TodoListProps> = ({ taskType, userId }) => {
     }
   };
 
-  const handleDeleteTask = async (taskId: number) => {
-    if (window.confirm('Supprimer cette tâche ?')) {
+  const handleDeleteClick = (taskId: number) => {
+    setDeleteModalTask(taskId);
+  };
+
+  const submitDeleteTask = async () => {
+    if (deleteModalTask !== null && userId) {
       try {
-        await axios.delete(`${API_URL}/${taskType}/tasks/${taskId}?user_id=${userId}`, {
+        await axios.delete(`${API_URL}/${taskType}/tasks/${deleteModalTask}?user_id=${userId}`, {
           withCredentials: true
         });
+        setDeleteModalTask(null);
         loadTasks();
       } catch (error) {
         console.error('Erreur suppression:', error);
@@ -171,7 +206,8 @@ const TodoList: React.FC<TodoListProps> = ({ taskType, userId }) => {
       target_duration_minutes: 30,
       recipe_name: '',
       target_calories: 0,
-      target_duration_hours: 8
+      target_duration_hours: 8,
+      weekly_quota: 7
     });
   };
 
@@ -213,6 +249,11 @@ const TodoList: React.FC<TodoListProps> = ({ taskType, userId }) => {
         tension: 0.3
       }
     ]
+  };
+
+  const isTaskCompletedToday = (taskId: number) => {
+    const today = new Date().toDateString();
+    return completions.some(c => c.task_id === taskId && new Date(c.completion_date).toDateString() === today);
   };
 
   if (loading) return <div className="loading">Chargement...</div>;
@@ -290,6 +331,16 @@ const TodoList: React.FC<TodoListProps> = ({ taskType, userId }) => {
                 />
               )}
 
+              <input
+                type="number"
+                min="1"
+                max="7"
+                placeholder="Quota hebdomadaire (1-7)"
+                value={newTask.weekly_quota}
+                onChange={(e) => setNewTask({ ...newTask, weekly_quota: parseInt(e.target.value) })}
+                required
+              />
+
               <button type="submit" className="btn-submit">Ajouter</button>
             </form>
           )}
@@ -316,21 +367,39 @@ const TodoList: React.FC<TodoListProps> = ({ taskType, userId }) => {
                       {taskType === 'nutrition' && task.target_calories && (
                         <span className="calories">{task.target_calories} kcal</span>
                       )}
-                      {taskType === 'sleep' && task.target_duration_hours && (
-                        <span className="duration">{task.target_duration_hours}h</span>
+                      {taskType === 'sleep' && task.target_bedtime && task.target_waketime && (
+                        <span className="badge">
+                          {task.target_bedtime.slice(0, 5)} - {task.target_waketime.slice(0, 5)}
+                        </span>
                       )}
+                      {taskType === 'sleep' && task.target_duration_hours && (
+                        <span className="duration">Objectif: {task.target_duration_hours}h de sommeil</span>
+                      )}
+                      
+                      <div className="weekly-progress">
+                        <div className="progress-container">
+                          <div 
+                            className="progress-bar" 
+                            style={{ width: `${Math.min(100, (task.weekly_completions / task.weekly_quota) * 100)}%` }}
+                          ></div>
+                        </div>
+                        <span className="progress-text">
+                          Quota {task.weekly_completions} / {task.weekly_quota} {task.weekly_quota === 7 ? 'jours (Quotidien)' : 'fois / semaine'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <div className="task-actions">
                     <button
-                      onClick={() => handleCompleteTask(task.id)}
-                      className="btn-complete"
-                      title="Marquer comme terminé"
+                      onClick={() => task.weekly_completions < task.weekly_quota && !isTaskCompletedToday(task.id) && handleCompleteClick(task.id)}
+                      className={`btn-complete ${task.weekly_completions >= task.weekly_quota ? 'completed-reached' : (isTaskCompletedToday(task.id) ? 'completed-today' : '')}`}
+                      title={task.weekly_completions >= task.weekly_quota ? "Quota hebdomadaire atteint !" : (isTaskCompletedToday(task.id) ? "Déjà fait aujourd'hui" : "Marquer comme fait")}
+                      disabled={task.weekly_completions >= task.weekly_quota || isTaskCompletedToday(task.id)}
                     >
-                      ✓
+                      {task.weekly_completions >= task.weekly_quota ? '★' : '✓'}
                     </button>
                     <button
-                      onClick={() => handleDeleteTask(task.id)}
+                      onClick={() => handleDeleteClick(task.id)}
                       className="btn-delete"
                       title="Supprimer"
                     >
@@ -342,6 +411,48 @@ const TodoList: React.FC<TodoListProps> = ({ taskType, userId }) => {
             )}
           </div>
         </div>
+
+        {completeModalTask !== null && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <h3>{taskType === 'sport' ? 'Durée (minutes)' : (taskType === 'sleep' ? 'Heures de sommeil' : 'Calories (kcal)')}</h3>
+              <input 
+                type="number" 
+                value={taskType === 'sport' ? completeDuration : completeValue}
+                onChange={(e) => taskType === 'sport' ? setCompleteDuration(e.target.value) : setCompleteValue(e.target.value)}
+                placeholder="Entrez la valeur"
+                autoFocus
+              />
+              
+              <div className="date-selection">
+                <label>Date de l'action :</label>
+                <input 
+                  type="date" 
+                  value={completeDate}
+                  onChange={(e) => setCompleteDate(e.target.value)}
+                  max={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              <div className="modal-actions">
+                <button onClick={() => setCompleteModalTask(null)} className="btn-cancel">Annuler</button>
+                <button onClick={() => submitCompleteTask()} className="btn-confirm">Valider</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {deleteModalTask !== null && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <h3>Confirmer la suppression</h3>
+              <p>Voulez-vous vraiment supprimer cette tâche ?</p>
+              <div className="modal-actions">
+                <button onClick={() => setDeleteModalTask(null)} className="btn-cancel">Annuler</button>
+                <button onClick={() => submitDeleteTask()} className="btn-danger">Supprimer</button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="todolist-sidebar">
           <h3>📈 Progrès (7 derniers jours)</h3>

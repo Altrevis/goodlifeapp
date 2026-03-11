@@ -7,9 +7,9 @@ users_bp = Blueprint('users', __name__)
 # Configuration de la base de données
 db_config = {
     'host': 'localhost',
-    'port': 3307,
-    'user': 'leo',
-    'password': 'leo',
+    'port': 3306,
+    'user': 'alexandre',
+    'password': 'ynov2526',
     'database': 'bienetre'
 }
 

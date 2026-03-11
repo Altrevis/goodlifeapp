@@ -22,9 +22,14 @@ def get_sport_tasks():
         cursor = conn.cursor(dictionary=True)
         
         cursor.execute("""
-            SELECT * FROM tasks 
-            WHERE user_id = %s AND task_type = 'sport' AND is_active = 1
-            ORDER BY created_at DESC
+            SELECT t.*, 
+                   (SELECT COUNT(*) FROM task_completions tc 
+                    WHERE tc.task_id = t.id 
+                    AND tc.completion_date >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
+                   ) as weekly_completions
+            FROM tasks t
+            WHERE t.user_id = %s AND t.task_type = 'sport' AND t.is_active = 1
+            ORDER BY t.created_at DESC
         """, (user_id,))
         
         tasks = cursor.fetchall()
@@ -50,15 +55,16 @@ def create_sport_task():
         
         cursor.execute("""
             INSERT INTO tasks 
-            (user_id, task_type, title, description, activity_type, target_duration_minutes, target_reps)
-            VALUES (%s, 'sport', %s, %s, %s, %s, %s)
+            (user_id, task_type, title, description, activity_type, target_duration_minutes, target_reps, weekly_quota)
+            VALUES (%s, 'sport', %s, %s, %s, %s, %s, %s)
         """, (
             user_id,
             data.get('title'),
             data.get('description'),
             data.get('activity_type'),
             data.get('target_duration_minutes'),
-            data.get('target_reps')
+            data.get('target_reps'),
+            data.get('weekly_quota', 7)
         ))
         
         conn.commit()
@@ -86,7 +92,7 @@ def update_sport_task(task_id):
         cursor.execute("""
             UPDATE tasks 
             SET title = %s, description = %s, activity_type = %s, 
-                target_duration_minutes = %s, target_reps = %s
+                target_duration_minutes = %s, target_reps = %s, weekly_quota = %s
             WHERE id = %s AND user_id = %s AND task_type = 'sport'
         """, (
             data.get('title'),
@@ -94,6 +100,7 @@ def update_sport_task(task_id):
             data.get('activity_type'),
             data.get('target_duration_minutes'),
             data.get('target_reps'),
+            data.get('weekly_quota', 7),
             task_id,
             user_id
         ))
@@ -147,9 +154,14 @@ def get_nutrition_tasks():
         cursor = conn.cursor(dictionary=True)
         
         cursor.execute("""
-            SELECT * FROM tasks 
-            WHERE user_id = %s AND task_type = 'nutrition' AND is_active = 1
-            ORDER BY created_at DESC
+            SELECT t.*, 
+                   (SELECT COUNT(*) FROM task_completions tc 
+                    WHERE tc.task_id = t.id 
+                    AND tc.completion_date >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
+                   ) as weekly_completions
+            FROM tasks t
+            WHERE t.user_id = %s AND t.task_type = 'nutrition' AND t.is_active = 1
+            ORDER BY t.created_at DESC
         """, (user_id,))
         
         tasks = cursor.fetchall()
@@ -175,8 +187,8 @@ def create_nutrition_task():
         
         cursor.execute("""
             INSERT INTO tasks 
-            (user_id, task_type, title, description, recipe_name, meal_type, target_calories, ingredients)
-            VALUES (%s, 'nutrition', %s, %s, %s, %s, %s, %s)
+            (user_id, task_type, title, description, recipe_name, meal_type, target_calories, ingredients, weekly_quota)
+            VALUES (%s, 'nutrition', %s, %s, %s, %s, %s, %s, %s)
         """, (
             user_id,
             data.get('title'),
@@ -184,7 +196,8 @@ def create_nutrition_task():
             data.get('recipe_name'),
             data.get('meal_type'),
             data.get('target_calories'),
-            data.get('ingredients')
+            data.get('ingredients'),
+            data.get('weekly_quota', 7)
         ))
         
         conn.commit()
@@ -212,7 +225,7 @@ def update_nutrition_task(task_id):
         cursor.execute("""
             UPDATE tasks 
             SET title = %s, description = %s, recipe_name = %s, 
-                meal_type = %s, target_calories = %s, ingredients = %s
+                meal_type = %s, target_calories = %s, ingredients = %s, weekly_quota = %s
             WHERE id = %s AND user_id = %s AND task_type = 'nutrition'
         """, (
             data.get('title'),
@@ -221,6 +234,7 @@ def update_nutrition_task(task_id):
             data.get('meal_type'),
             data.get('target_calories'),
             data.get('ingredients'),
+            data.get('weekly_quota', 7),
             task_id,
             user_id
         ))
@@ -274,12 +288,24 @@ def get_sleep_tasks():
         cursor = conn.cursor(dictionary=True)
         
         cursor.execute("""
-            SELECT * FROM tasks 
-            WHERE user_id = %s AND task_type = 'sleep' AND is_active = 1
-            ORDER BY created_at DESC
+            SELECT t.*, 
+                   (SELECT COUNT(*) FROM task_completions tc 
+                    WHERE tc.task_id = t.id 
+                    AND tc.completion_date >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
+                   ) as weekly_completions
+            FROM tasks t
+            WHERE t.user_id = %s AND t.task_type = 'sleep' AND t.is_active = 1
+            ORDER BY t.created_at DESC
         """, (user_id,))
         
         tasks = cursor.fetchall()
+        
+        from datetime import timedelta
+        for task in tasks:
+            for key, value in list(task.items()):
+                if isinstance(value, timedelta):
+                    task[key] = str(value)
+                    
         cursor.close()
         conn.close()
         
@@ -302,15 +328,16 @@ def create_sleep_task():
         
         cursor.execute("""
             INSERT INTO tasks 
-            (user_id, task_type, title, description, target_duration_hours, target_bedtime, target_waketime)
-            VALUES (%s, 'sleep', %s, %s, %s, %s, %s)
+            (user_id, task_type, title, description, target_duration_hours, target_bedtime, target_waketime, weekly_quota)
+            VALUES (%s, 'sleep', %s, %s, %s, %s, %s, %s)
         """, (
             user_id,
             data.get('title'),
             data.get('description'),
             data.get('target_duration_hours'),
             data.get('target_bedtime'),
-            data.get('target_waketime')
+            data.get('target_waketime'),
+            data.get('weekly_quota', 7)
         ))
         
         conn.commit()
@@ -338,7 +365,7 @@ def update_sleep_task(task_id):
         cursor.execute("""
             UPDATE tasks 
             SET title = %s, description = %s, target_duration_hours = %s,
-                target_bedtime = %s, target_waketime = %s
+                target_bedtime = %s, target_waketime = %s, weekly_quota = %s
             WHERE id = %s AND user_id = %s AND task_type = 'sleep'
         """, (
             data.get('title'),
@@ -346,6 +373,7 @@ def update_sleep_task(task_id):
             data.get('target_duration_hours'),
             data.get('target_bedtime'),
             data.get('target_waketime'),
+            data.get('weekly_quota', 7),
             task_id,
             user_id
         ))

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import "./css/chat.css";
 import UserInfo from "../components/UserInfo";
@@ -32,6 +32,18 @@ const Chat: React.FC = () => {
   const [healthData, setHealthData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'sport' | 'nutrition' | 'sleep' | 'evolution'>('sport');
   const [refreshKey, setRefreshKey] = useState(0); // To force reload of tabs
+  
+  const chatBoxRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    if (chatBoxRef.current) {
+      chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isLoading]);
 
   const loadUserId = () => {
     try {
@@ -193,7 +205,7 @@ const Chat: React.FC = () => {
             <h1>Chat Santé 💬</h1>
           </div>
 
-          <div className="chat-box">
+          <div className="chat-box" ref={chatBoxRef}>
             {messages.filter(msg => msg.role !== "system" || msg.content.includes("Génération")).map((msg, index) => (
               <div key={index} className={`chat-message ${msg.role}`}>
                 <strong>{msg.role === "user" ? "Vous" : msg.role === "system" ? "Système" : "Coach IA"}:</strong>

@@ -11,7 +11,7 @@ from .profile import get_profile
 program_gen_bp = Blueprint('program_gen', __name__)
 
 # URL LM Studio (hardcoded for now as in app.py)
-LM_STUDIO_URL = "http://10.37.4.239:1234/v1/chat/completions"
+LM_STUDIO_URL = "http://10.37.6.153:1234/v1/chat/completions"
 
 def get_user_data_internal(user_id):
     """Reuse logic to get user data for the prompt"""
@@ -69,19 +69,25 @@ def generate_program():
         """
     
     prompt += """
-    Génère un programme quotidien complet et personnalisé pour AUJOURD'HUI.
+    Génère un programme complet et personnalisé. 
+    Pour chaque tâche, tu DOIS définir un 'weekly_quota' (nombre de fois que cette action doit être faite par semaine, entre 1 et 7). 
+    Si une action doit être faite tous les jours, quota=7. Si c'est 3 fois par semaine, quota=3.
+    
+    IMPORTANT pour les tâches nutritionnelles :
+    Le champ 'meal_type' DOIT être l'une des valeurs exactes suivantes : 'breakfast', 'lunch', 'dinner', 'snack'.
+    Ne mets PAS de texte français comme "déjeuner" ou "dîner" dans le champ 'meal_type'.
+    
     Ta réponse doit être UNIQUEMENT un objet JSON valide (pas de texte avant ou après).
     Le JSON doit suivre exactement cette structure :
     {
       "sport_tasks": [
-        { "title": "...", "description": "...", "activity_type": "...", "target_duration_minutes": 30 }
+        { "title": "...", "description": "...", "activity_type": "...", "target_duration_minutes": 30, "weekly_quota": 3 }
       ],
       "nutrition_tasks": [
-        { "title": "...", "description": "...", "recipe_name": "...", "target_calories": 500, "meal_type": "lunch" } 
-        // meal_type peut être: breakfast, lunch, dinner, snack
+        { "title": "...", "description": "...", "recipe_name": "...", "target_calories": 500, "meal_type": "breakfast", "weekly_quota": 7 } 
       ],
       "sleep_tasks": [
-        { "title": "...", "description": "...", "target_duration_hours": 8, "target_bedtime": "22:00", "target_waketime": "06:00" }
+        { "title": "...", "description": "...", "target_duration_hours": 8, "target_bedtime": "22:00", "target_waketime": "06:00", "weekly_quota": 7 }
       ],
       "general_recommendation": "Un court texte d'encouragement résumant la journée."
     }
@@ -91,10 +97,10 @@ def generate_program():
         payload = {
             "model": "mistralai/ministral-3-3b",
             "messages": [
-                {"role": "system", "content": "Tu es un assistant JSON strict spécialisé UNIQUEMENT dans le sport, la nutrition et le bien-être. Tu ne réponds qu'avec du JSON valide. Tu ne traites que des sujets liés à la santé, au sport et à la nutrition. Tu ignores toute demande hors de ce domaine."},
+                {"role": "system", "content": "Tu es un assistant JSON strict spécialisé UNIQUEMENT dans le sport, la nutrition et le bien-être. Tu ne réponds qu'avec du JSON valide. Tu respectes strictement les valeurs ENUM demandées : 'breakfast', 'lunch', 'dinner', 'snack' for meal_type."},
                 {"role": "user", "content": prompt}
             ],
-            "temperature": 0.7
+            "temperature": 0.4 # Reduced temperature for better adherence to JSON schema
         }
 
         # Call LM Studio
@@ -111,29 +117,36 @@ def generate_program():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Optional: Archive old active tasks for clarity? 
-        # For now, let's just add new ones.
-        
         # Insert Sport Tasks
         for task in program_data.get('sport_tasks', []):
             cursor.execute("""
-                INSERT INTO tasks (user_id, task_type, title, description, activity_type, target_duration_minutes, is_active)
-                VALUES (%s, 'sport', %s, %s, %s, %s, 1)
-            """, (user_id, task.get('title'), task.get('description'), task.get('activity_type'), task.get('target_duration_minutes')))
+                INSERT INTO tasks (user_id, task_type, title, description, activity_type, target_duration_minutes, weekly_quota, is_active)
+                VALUES (%s, 'sport', %s, %s, %s, %s, %s, 1)
+            """, (user_id, task.get('title'), task.get('description'), task.get('activity_type'), task.get('target_duration_minutes'), task.get('weekly_quota', 7)))
             
         # Insert Nutrition Tasks
+        allowed_meals = {'breakfast', 'lunch', 'dinner', 'snack'}
         for task in program_data.get('nutrition_tasks', []):
+            # Valider meal_type pour éviter erreur SQL ENUM
+            m_type = task.get('meal_type', 'snack').lower()
+            if m_type not in allowed_meals:
+                # Mapping basique si l'IA s'obstine en français
+                if "petit-déjeuner" in m_type or "matin" in m_type: m_type = "breakfast"
+                elif "déjeuner" in m_type or "midi" in m_type: m_type = "lunch"
+                elif "dîner" in m_type or "soir" in m_type: m_type = "dinner"
+                else: m_type = "snack"
+
             cursor.execute("""
-                INSERT INTO tasks (user_id, task_type, title, description, recipe_name, meal_type, target_calories, is_active)
-                VALUES (%s, 'nutrition', %s, %s, %s, %s, %s, 1)
-            """, (user_id, task.get('title'), task.get('description'), task.get('recipe_name'), task.get('meal_type'), task.get('target_calories')))
+                INSERT INTO tasks (user_id, task_type, title, description, recipe_name, meal_type, target_calories, weekly_quota, is_active)
+                VALUES (%s, 'nutrition', %s, %s, %s, %s, %s, %s, 1)
+            """, (user_id, task.get('title'), task.get('description'), task.get('recipe_name'), m_type, task.get('target_calories'), task.get('weekly_quota', 7)))
 
         # Insert Sleep Tasks
         for task in program_data.get('sleep_tasks', []):
             cursor.execute("""
-                INSERT INTO tasks (user_id, task_type, title, description, target_duration_hours, target_bedtime, target_waketime, is_active)
-                VALUES (%s, 'sleep', %s, %s, %s, %s, %s, 1)
-            """, (user_id, task.get('title'), task.get('description'), task.get('target_duration_hours'), task.get('target_bedtime'), task.get('target_waketime')))
+                INSERT INTO tasks (user_id, task_type, title, description, target_duration_hours, target_bedtime, target_waketime, weekly_quota, is_active)
+                VALUES (%s, 'sleep', %s, %s, %s, %s, %s, %s, 1)
+            """, (user_id, task.get('title'), task.get('description'), task.get('target_duration_hours'), task.get('target_bedtime'), task.get('target_waketime'), task.get('weekly_quota', 7)))
 
         conn.commit()
         cursor.close()

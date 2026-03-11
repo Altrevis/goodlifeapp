@@ -10,8 +10,27 @@ import Sleep from "./pages/sleep";
 import ProfilePage from "./pages/profile";
 
 const App: React.FC = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userName, setUserName] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    const user = localStorage.getItem("user");
+    if (user) {
+      try {
+        const userData = JSON.parse(user);
+        if (userData && userData.first_name) return true;
+      } catch (e) {}
+    }
+    return false;
+  });
+
+  const [userName, setUserName] = useState(() => {
+    const user = localStorage.getItem("user");
+    if (user) {
+      try {
+        const userData = JSON.parse(user);
+        if (userData && userData.first_name) return userData.first_name;
+      } catch (e) {}
+    }
+    return "";
+  });
 
   useEffect(() => {
     const checkAuth = () => {

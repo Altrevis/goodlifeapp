@@ -28,7 +28,7 @@ app.secret_key = 'your_secret_key_here'  # Change this to a secure key
 # ---------------------------------------------------------
 
 # URL для LM Studio API
-LM_STUDIO_URL = "http://10.37.4.239:1234/v1/chat/completions"
+LM_STUDIO_URL = "http://10.37.6.153:1234/v1/chat/completions"
 
 def close_resources(cursor, connection):
     if cursor is not None:
@@ -86,7 +86,7 @@ login_manager.init_app(app)
 def load_user(user_id):
     try:
         conn = mysql.connector.connect(**db_config)
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(dictionary=True) # Toujours utiliser dictionary=True pour éviter les erreurs r['key']
         cursor.execute("SELECT id, email, first_name, last_name FROM users WHERE id = %s", (user_id,))
         user_data = cursor.fetchone()
         if user_data:
@@ -226,8 +226,8 @@ def has_system_message_with_data(user_id):
             SELECT COUNT(*) as count
             FROM messages
             WHERE user_id = %s AND role = 'system' 
-            AND content LIKE '%J\'ai bien récupéré vos données%'
-        """, (user_id,))
+            AND content LIKE %s
+        """, (user_id, "%J'ai bien récupéré vos données%"))
         result = cursor.fetchone()
         return result and result['count'] > 0
     except Error as e:
@@ -338,19 +338,32 @@ def proxy_chat():
                     if health_info.get("heart_rate"):
                         system_content_parts.append(f"Fréquence cardiaque: {health_info['heart_rate']} bpm")
                     if health_info.get("sleep_hours"):
-                        system_content_parts.append(f"Heures de sommeil: {health_info['sleep_hours']} h")
+                        system_content_parts.append(f"Heures de sommeil (Moyenne 7 jours): {health_info['sleep_hours']} h")
                     if health_info.get("steps"):
                         system_content_parts.append(f"Pas: {health_info['steps']}")
                     if health_info.get("calories_burned"):
                         system_content_parts.append(f"Calories brûlées: {health_info['calories_burned']} kcal")
                 
+                # Construire la ligne de confirmation dynamiquement selon les données dispos
+                confirm_parts = []
                 if weight_value:
-                    system_content_parts.append(f"\nINSTRUCTION IMPORTANTE: Lorsque l'utilisateur vous salue ou commence une conversation, vous DEVEZ TOUJOURS commencer votre réponse par confirmer que vous avez bien récupéré ses données en mentionnant son poids. Répondez exactement dans ce format: 'J'ai bien récupéré vos données ({weight_value} kg).' Ensuite, vous pouvez continuer normalement la conversation.")
+                    confirm_parts.append(f"poids: {weight_value} kg")
+                if health_info.get("sleep_hours"):
+                    confirm_parts.append(f"sommeil moyen: {health_info['sleep_hours']} h")
+                if health_info.get("steps"):
+                    confirm_parts.append(f"pas: {health_info['steps']}")
+                
+                if confirm_parts:
+                    confirm_msg = ", ".join(confirm_parts)
+                    system_content_parts.append(f"\nINSTRUCTION CRITIQUE: Vous DEVEZ impérativement commencer votre TOUTE PREMIÈRE réponse par : 'J'ai bien récupéré vos données ({confirm_msg}).' C'est une preuve de connexion technique. Ne l'oubliez jamais.")
                 else:
-                    system_content_parts.append("\nINSTRUCTION IMPORTANTE: Lorsque l'utilisateur vous salue ou commence une conversation, vous DEVEZ TOUJOURS commencer votre réponse par confirmer que vous avez bien récupéré ses données.")
+                    system_content_parts.append("\nINSTRUCTION: Invitez l'utilisateur à remplir son profil.")
                 
-                system_message = "\n".join(system_content_parts)
+                import time
+                system_message = "\n".join(system_content_parts) + f"\n\n[Context Timestamp: {time.time()}]"
+                print(f"DEBUG - System Message for User {user_id} (Sleep: {health_info.get('sleep_hours')})")
                 
+                # S'assurer que le premier message est le message système mis à jour
                 is_first_conversation = not has_system_message_with_data(user_id)
                 
                 if not (messages and messages[0].get("role") == "system"):

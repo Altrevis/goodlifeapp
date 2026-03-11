@@ -1,4 +1,4 @@
-#!/home/alexandre/goodlifeapp/backend/venv/bin/python3
+#!/home/alexandre/Downloads/y/goodlifeapp/backend/venv/bin/python3.14
 import sys
 from pip._internal.cli.main import main
 if __name__ == '__main__':

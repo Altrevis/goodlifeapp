@@ -16,7 +16,7 @@ OFF_SEARCH_URL = "https://world.openfoodfacts.org/cgi/search.pl"
 
 # Cache simple en mémoire pour stabiliser la recherche OFF (TTL)
 _OFF_SEARCH_CACHE: dict[str, dict] = {}
-_OFF_SEARCH_CACHE_TTL_SECONDS = 60 * 60  # 1h
+_OFF_SEARCH_CACHE_TTL_SECONDS = 60 * 120  # 2h - augmenté pour réduire les appels API
 
 
 def _cache_get(query: str):
@@ -30,6 +30,20 @@ def _cache_get(query: str):
         _OFF_SEARCH_CACHE.pop(key, None)
         return None
     return entry.get("payload")
+
+
+def _cache_get_stale(query: str):
+    """Récupère le cache même expiré (fallback si API lente)"""
+    key = (query or "").strip().lower()
+    if not key:
+        return None
+    entry = _OFF_SEARCH_CACHE.get(key)
+    if entry and entry.get("payload"):
+        payload = dict(entry.get("payload"))
+        payload["cached"] = True
+        payload["stale"] = True  # Indiquer que les données sont anciennes
+        return payload
+    return None
 
 
 def _cached_or_error(cached, error_msg: str, details, status: int):
@@ -88,7 +102,7 @@ def get_nutrition_by_barcode(barcode):
     """
     try:
         url = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
-        r = requests.get(url, headers=OFF_HEADERS, timeout=15)
+        r = requests.get(url, headers=OFF_HEADERS, timeout=8)  # Timeout agressif pour rapidité
         if r.status_code != 200:
             return jsonify({"error": "Erreur OpenFoodFacts", "status": r.status_code, "details": r.text}), r.status_code
         data = r.json()
@@ -157,28 +171,28 @@ def search_nutrition(query):
     """
     cached = _cache_get(query)
     try:
-        # Retry léger (OFF search peut être lent) + timeout(connect, read)
-        last_exc = None
-        r = None
+        # Recherche rapide sans retry - le cache gère la fiabilité
         params = {
             "search_terms": query,
             "search_simple": 1,
             "action": "process",
             "json": 1,
             "page_size": 5,
+            "fields": "product_name,brands,code,serving_size,nutriments,image_small_url"  # Limiter les champs
         }
-        for attempt in range(3):
-            try:
-                r = requests.get(
-                    OFF_SEARCH_URL, params=params, headers=OFF_HEADERS, timeout=(8, 45)
-                )
-                break
-            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
-                last_exc = e
-                if attempt < 2:
-                    time.sleep(0.5 * (attempt + 1))
+        try:
+            r = requests.get(
+                OFF_SEARCH_URL, params=params, headers=OFF_HEADERS, timeout=(4, 18)  # Timeout: connexion 4s, lecture 18s
+            )
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+            # Pas de retry - vérifier cache expiré comme fallback
+            stale_cache = _cache_get_stale(query)
+            if stale_cache:
+                return jsonify(stale_cache), 200
+            return _cached_or_error(cached, "Délai dépassé lors de l'appel à OpenFoodFacts", e, 504)
+        
         if r is None:
-            raise last_exc
+            return _cached_or_error(cached, "Impossible de contacter OpenFoodFacts", "No response", 503)
 
         if r.status_code != 200:
             return (
@@ -203,22 +217,24 @@ def search_nutrition(query):
         products = (data.get("products") or [])[:5]
         results = []
         for p in products:
-            nutr = p.get("nutriments", {}) or {}
+            nutr = p.get("nutriments") or {}
+            # Extraction optimisée des valeurs
+            energy = nutr.get("energy-kcal_100g") or nutr.get("energy-kj_100g")
+            fiber = nutr.get("fiber_100g") or nutr.get("dietary-fiber_100g")
+            
             results.append(
                 {
                     "name": p.get("product_name"),
                     "brand": p.get("brands"),
                     "barcode": p.get("code"),
                     "serving_size": p.get("serving_size"),
-                    "calories_kcal_100g": nutr.get("energy-kcal_100g")
-                    or nutr.get("energy-kj_100g"),
+                    "calories_kcal_100g": energy,
                     "proteins_100g": nutr.get("proteins_100g"),
                     "fat_100g": nutr.get("fat_100g"),
                     "saturated_fat_100g": nutr.get("saturated-fat_100g"),
                     "carbohydrates_100g": nutr.get("carbohydrates_100g"),
                     "sugars_100g": nutr.get("sugars_100g"),
-                    "fiber_100g": nutr.get("fiber_100g")
-                    or nutr.get("dietary-fiber_100g"),
+                    "fiber_100g": fiber,
                     "salt_100g": nutr.get("salt_100g"),
                     "image": p.get("image_small_url"),
                 }

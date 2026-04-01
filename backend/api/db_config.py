@@ -3,9 +3,9 @@ from mysql.connector import Error
 
 db_config = {
     "host": "localhost",
-    "port": 8889,        
-    "user": "root",
-    "password": "root",
+    "port": 3307,
+    "user": "leo",
+    "password": "leo"
     "database": "bienetre",
 }
 

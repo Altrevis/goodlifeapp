@@ -28,7 +28,7 @@ app.secret_key = 'your_secret_key_here'  # Change this to a secure key
 # ---------------------------------------------------------
 
 # URL для LM Studio API
-LM_STUDIO_URL = "http://10.37.6.153:1234/v1/chat/completions"
+LM_STUDIO_URL = "http://192.168.1.60:1234/v1/chat/completions"
 
 def close_resources(cursor, connection):
     if cursor is not None:

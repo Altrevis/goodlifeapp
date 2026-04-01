@@ -11,7 +11,7 @@ from .profile import get_profile
 program_gen_bp = Blueprint('program_gen', __name__)
 
 # URL LM Studio (hardcoded for now as in app.py)
-LM_STUDIO_URL = "http://10.37.6.153:1234/v1/chat/completions"
+LM_STUDIO_URL = "http://192.168.1.60:1234/v1/chat/completions"
 
 def get_user_data_internal(user_id):
     """Reuse logic to get user data for the prompt"""

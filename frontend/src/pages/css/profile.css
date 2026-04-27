@@ -2,6 +2,7 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
+  padding-top: calc(60px + 2rem); /* ← hauteur navbar + padding normal */
   font-family: Arial, sans-serif;
 }
 

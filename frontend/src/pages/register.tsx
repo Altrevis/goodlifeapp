@@ -14,27 +14,34 @@ const Register: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     try {
-      const response = await fetch('http://localhost:5000/api/user/register', {
+      const response = await fetch('http://127.0.0.1:5000/api/user/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ first_name: firstName, last_name: lastName, email, password, age: parseInt(age), gender }),
+        body: JSON.stringify({ 
+          first_name: firstName, 
+          last_name: lastName, 
+          email, 
+          password, 
+          age: parseInt(age), 
+          gender 
+        }),
       });
 
       if (response.ok) {
         const data = await response.json();
         localStorage.setItem('user', JSON.stringify(data.user));
-        // Dispatch custom event to update App state
         window.dispatchEvent(new Event('authChange'));
         navigate('/');
       } else {
         const errorData = await response.json();
-        setError(errorData.error);
+        setError(errorData.error || "Erreur lors de l'inscription");
       }
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError('Erreur de connexion au serveur.');
     }
   };
 

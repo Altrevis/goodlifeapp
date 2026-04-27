@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Line } from 'react-chartjs-2';
+import { 
+  Dumbbell, 
+  Utensils, 
+  Moon, 
+  CheckCircle2, 
+  Trash2, 
+  TrendingUp,
+  Plus,
+  X 
+} from 'lucide-react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -23,7 +33,7 @@ ChartJS.register(
   Legend
 );
 
-const API_URL = 'http://localhost:5000/api/tasks';
+const API_URL = 'http://127.0.0.1:5000/api/tasks';
 
 interface Task {
   id: number;
@@ -118,7 +128,6 @@ const TodoList: React.FC<TodoListProps> = ({ taskType, userId }) => {
     }
   }, [userId, loadData]);
 
-
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) return;
@@ -144,7 +153,7 @@ const TodoList: React.FC<TodoListProps> = ({ taskType, userId }) => {
 
     if (taskType === 'sleep' && userId) {
       try {
-        const profileRes = await axios.get(`http://localhost:5000/api/profile?user_id=${userId}`, {
+        const profileRes = await axios.get(`http://127.0.0.1:5000/api/profile?user_id=${userId}`, {
           withCredentials: true
         });
         const sleepHours = profileRes.data?.health_data?.sleep_hours;
@@ -166,7 +175,7 @@ const TodoList: React.FC<TodoListProps> = ({ taskType, userId }) => {
           task_id: completeModalTask,
           duration_minutes: taskType === 'sport' ? parseInt(completeDuration) : null,
           actual_value: taskType === 'sleep' || taskType === 'nutrition' ? parseFloat(completeValue) : null,
-          quality_rating: 5, // Default rating as quality logic was removed
+          quality_rating: 5,
           notes: '',
           completion_date: completeDate
         }, {
@@ -213,9 +222,10 @@ const TodoList: React.FC<TodoListProps> = ({ taskType, userId }) => {
 
   const getTaskIcon = () => {
     switch (taskType) {
-      case 'sport': return '🏃';
-      case 'nutrition': return '🥗';
-      case 'sleep': return '😴';
+      case 'sport': return <Dumbbell size={28} color="#10b981" />;
+      case 'nutrition': return <Utensils size={28} color="#10b981" />;
+      case 'sleep': return <Moon size={28} color="#10b981" />;
+      default: return null;
     }
   };
 
@@ -227,7 +237,6 @@ const TodoList: React.FC<TodoListProps> = ({ taskType, userId }) => {
     }
   };
 
-  // Prepare data for the chart
   const reversedCompletions = [...completions].reverse();
   const chartData = {
     labels: reversedCompletions.map(c => new Date(c.completion_date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })),
@@ -263,12 +272,15 @@ const TodoList: React.FC<TodoListProps> = ({ taskType, userId }) => {
       <div className="todolist-layout">
         <div className="todolist-main">
           <div className="todolist-header">
-            <h2>{getTaskIcon()} {getTaskLabel()} - Todolist</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {getTaskIcon()}
+              <h2>{getTaskLabel()} - Todolist</h2>
+            </div>
             <button
               onClick={() => setShowAddForm(!showAddForm)}
               className="btn-add"
             >
-              {showAddForm ? '✕ Annuler' : '+ Nouvelle tâche'}
+              {showAddForm ? <><X size={18} /> Annuler</> : <><Plus size={18} /> Nouvelle tâche</>}
             </button>
           </div>
 
@@ -347,7 +359,7 @@ const TodoList: React.FC<TodoListProps> = ({ taskType, userId }) => {
 
           <div className="tasks-list">
             {tasks.length === 0 ? (
-              <p className="no-tasks">Aucune tâche. Utilisez "✨ Programme Recommandé" pour en générer ! 🎯</p>
+              <p className="no-tasks">Aucune tâche. Utilisez le programme recommandé pour en générer !</p>
             ) : (
               tasks.map(task => (
                 <div key={task.id} className="task-card">
@@ -373,7 +385,7 @@ const TodoList: React.FC<TodoListProps> = ({ taskType, userId }) => {
                         </span>
                       )}
                       {taskType === 'sleep' && task.target_duration_hours && (
-                        <span className="duration">Objectif: {task.target_duration_hours}h de sommeil</span>
+                        <span className="duration">Objectif: {task.target_duration_hours}h</span>
                       )}
                       
                       <div className="weekly-progress">
@@ -384,7 +396,7 @@ const TodoList: React.FC<TodoListProps> = ({ taskType, userId }) => {
                           ></div>
                         </div>
                         <span className="progress-text">
-                          Quota {task.weekly_completions} / {task.weekly_quota} {task.weekly_quota === 7 ? 'jours (Quotidien)' : 'fois / semaine'}
+                          Quota {task.weekly_completions} / {task.weekly_quota}
                         </span>
                       </div>
                     </div>
@@ -393,17 +405,15 @@ const TodoList: React.FC<TodoListProps> = ({ taskType, userId }) => {
                     <button
                       onClick={() => task.weekly_completions < task.weekly_quota && !isTaskCompletedToday(task.id) && handleCompleteClick(task.id)}
                       className={`btn-complete ${task.weekly_completions >= task.weekly_quota ? 'completed-reached' : (isTaskCompletedToday(task.id) ? 'completed-today' : '')}`}
-                      title={task.weekly_completions >= task.weekly_quota ? "Quota hebdomadaire atteint !" : (isTaskCompletedToday(task.id) ? "Déjà fait aujourd'hui" : "Marquer comme fait")}
                       disabled={task.weekly_completions >= task.weekly_quota || isTaskCompletedToday(task.id)}
                     >
-                      {task.weekly_completions >= task.weekly_quota ? '★' : '✓'}
+                      <CheckCircle2 size={22} />
                     </button>
                     <button
                       onClick={() => handleDeleteClick(task.id)}
                       className="btn-delete"
-                      title="Supprimer"
                     >
-                      🗑️
+                      <Trash2 size={20} />
                     </button>
                   </div>
                 </div>
@@ -455,7 +465,9 @@ const TodoList: React.FC<TodoListProps> = ({ taskType, userId }) => {
         )}
 
         <div className="todolist-sidebar">
-          <h3>📈 Progrès (7 derniers jours)</h3>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <TrendingUp size={20} /> Progrès (7 jours)
+          </h3>
           <div className="task-chart-container">
             {chartData.labels.length > 0 ? (
               <Line
@@ -499,7 +511,7 @@ const TodoList: React.FC<TodoListProps> = ({ taskType, userId }) => {
               />
             ) : (
               <div className="no-history">
-                <p>Complétez des tâches pour voir votre graphique ! 🚀</p>
+                <p>Complétez des tâches pour voir votre graphique !</p>
               </div>
             )}
           </div>

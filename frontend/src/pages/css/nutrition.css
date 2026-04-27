@@ -1,61 +1,82 @@
-/* Styles minimaux pour la page nutrition */
-.nutrition-container {
-  padding: 1rem;
-  max-width: 900px;
-  margin: 0 auto;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-}
-
-.search-form {
+.search-wrapper-premium {
+  max-width: 500px;
+  margin: 30px auto;
   display: flex;
-  gap: .5rem;
-  margin-bottom: 1rem;
+  align-items: center;
+  background: white;
+  padding: 6px 6px 6px 20px;
+  border-radius: 50px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: 0.3s;
 }
 
-.search-input {
+.search-wrapper-premium:focus-within {
+  border-color: #10b981;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.1);
+}
+
+.search-field {
   flex: 1;
-  padding: .5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.search-btn {
-  padding: .5rem 1rem;
   border: none;
-  background: #2b7a78;
-  color: #fff;
-  border-radius: 4px;
+  outline: none;
+  font-size: 1rem;
+  background: transparent;
+}
+
+.search-circle-btn {
+  background-color: #10b981; /* Ton vert émeraude */
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  transition: 0.2s;
 }
 
-.results {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1rem;
+.search-circle-btn:hover {
+  background-color: #059669;
+  transform: scale(1.05);
 }
 
-.nutrition-card {
-  border: 1px solid #eee;
-  padding: .75rem;
-  border-radius: 6px;
-  background: #fff;
+.nutrition-search-bar-new {
+  max-width: 450px !important;
+  margin: 30px auto !important;
+  display: flex !important;
+  align-items: center !important;
+  background: white !important;
+  padding: 5px 5px 5px 20px !important;
+  border-radius: 50px !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.05) !important;
 }
 
-.nutrition-card img {
-  max-width: 100%;
-  height: auto;
-  display: block;
-  margin: .5rem 0;
+.nutrition-input-new {
+  flex: 1 !important;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  font-size: 1rem !important;
+  color: #1e293b !important;
 }
 
-.nutrient-list {
-  list-style: none;
-  padding: 0;
-  margin: 0.5rem 0 0 0;
+.nutrition-button-new {
+  background-color: #10b981 !important; /* Ton vert émeraude */
+  border: none !important;
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important; /* Force le cercle */
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  cursor: pointer !important;
+  padding: 0 !important;
 }
 
-.nutrient-list li {
-  font-size: .9rem;
-  padding: .15rem 0;
-  border-bottom: 1px dashed #f0f0f0;
+.nutrition-button-new:hover {
+  background-color: #059669 !important;
+  transform: scale(1.05);
 }

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
+import { Search, Apple, Info } from 'lucide-react';
 import './css/nutrition.css';
 
 const CACHE_KEY = 'nutrition_search_cache';
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1h
+const CACHE_TTL_MS = 60 * 60 * 1000;
 
 function getCachedResults(q: string): any[] | null {
   try {
@@ -36,8 +37,16 @@ const Nutrition: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const suggestions = [
+    { name: 'Pomme' },
+    { name: 'Poulet' },
+    { name: 'Riz' },
+    { name: 'Avocat' },
+    { name: 'Oeuf' }
+  ];
+
   const formatLabel = (key: string) => {
-    let label = key.replace(/[_\-]/g, ' ');
+    let label = key.replace(/[_-]/g, ' ');
     label = label.replace(/\s+100g$/i, ' /100g');
     label = label.replace(/\s+serving$/i, ' /serving');
     label = label.replace(/energy kj/i, 'energy (kJ)');
@@ -50,35 +59,33 @@ const Nutrition: React.FC = () => {
     return '';
   };
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
+  const handleSearch = async (e: React.FormEvent, searchOverride?: string) => {
+    if (e) e.preventDefault();
+    const searchTerm = searchOverride || query;
+    if (!searchTerm.trim()) return;
 
     setError('');
-    const cached = getCachedResults(query);
+    setLoading(true);
+
+    const cached = getCachedResults(searchTerm);
     if (cached && cached.length > 0) {
       setResults(cached);
-    } else {
-      setResults([]);
+      setLoading(false);
+      return;
     }
-    setLoading(true);
+
     try {
-      const response = await fetch(`http://localhost:5000/api/nutritionix/search/${encodeURIComponent(query)}`);
+      const response = await fetch(`http://127.0.0.1:5000/api/nutritionix/search/${encodeURIComponent(searchTerm)}`);
       if (response.ok) {
         const data = await response.json();
         const items = data.results || [];
         setResults(items);
-        setCachedResults(query, items);
+        setCachedResults(searchTerm, items);
       } else {
-        const err = await response.json().catch(() => ({} as any));
-        const msg =
-          (err && (err.error || err.message)) ||
-          `Erreur serveur (${response.status})` ||
-          'Aucun résultat trouvé';
-        setError(msg);
+        setError('Aucun résultat trouvé.');
       }
     } catch (err) {
-      setError('Erreur lors de la recherche');
+      setError('Erreur de connexion au serveur.');
     } finally {
       setLoading(false);
     }
@@ -86,54 +93,75 @@ const Nutrition: React.FC = () => {
 
   return (
     <div className="nutrition-container">
-      <h1>🍎 Nutrition</h1>
+      <h1 className="welcome-title">Nutrition <Apple size={36} color="#10b981" /></h1>
+      <p className="home-subtitle">Analysez la valeur nutritionnelle de vos aliments préférés.</p>
 
-      <form onSubmit={handleSearch} className="search-form">
-        <input
-          type="text"
-          placeholder="Rechercher un aliment... (ex: pomme, poulet)"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="search-input"
-        />
-        <button type="submit" className="search-btn">Rechercher</button>
-      </form>
+     <form onSubmit={(e) => handleSearch(e)} className="nutrition-search-bar-new">
+  <input
+    type="text"
+    placeholder="Rechercher un aliment..."
+    value={query}
+    onChange={(e) => setQuery(e.target.value)}
+    className="nutrition-input-new"
+  />
+  <button type="submit" className="nutrition-button-new">
+    <Search size={20} color="white" strokeWidth={3} />
+  </button>
+</form>
 
-      {loading && <p className="loading">Chargement...</p>}
-      {error && <p className="error">{error}</p>}
+      <div className="quick-suggestions">
+        <span style={{ marginRight: '8px' }}>Suggestions :</span>
+        {suggestions.map((item) => (
+          <button
+            key={item.name}
+            className="suggestion-pill"
+            onClick={(e) => {
+              setQuery(item.name);
+              handleSearch(e, item.name);
+            }}
+          >
+            {item.name}
+          </button>
+        ))}
+      </div>
 
-      <div className="results">
+      {loading && <div className="loading-spinner">Chargement...</div>}
+      {error && <p className="error-message">{error}</p>}
+
+      <div className="results-grid">
         {results.map((item, index) => {
-          // Object.entries retourne [string, unknown][]
           const nutrientEntries = (Object.entries(item) as [string, unknown][]).filter(([k, v]) => {
             if (['name', 'brand', 'barcode', 'image', 'serving_size', 'quantity', 'serving', 'product_name'].includes(k)) return false;
-            // garder les champs numériques ou textuels utiles
-            return (typeof v === 'number') || (typeof v === 'string' && v !== '' && !isNaN(Number(String(v)))) || (typeof v === 'string' && isNaN(Number(String(v))));
+            return (typeof v === 'number') || (typeof v === 'string' && v !== '' && !isNaN(Number(String(v))));
           });
 
           return (
             <div key={index} className="nutrition-card">
-              <h3>{(item.name as string) || (item.product_name as string) || 'Produit'}</h3>
-              {(item.brand || item.brands) && <p><strong>Marque:</strong> {(item.brand || item.brands)}</p>}
-              {item.image && <img alt={(item.name as string) || 'image produit'} src={String(item.image)} />}
-              {item.serving_size && <p><strong>Portion:</strong> {String(item.serving_size)}</p>}
+              <div className="card-header">
+                <h3>{(item.name as string) || (item.product_name as string) || 'Produit'}</h3>
+                {item.brand && <span className="brand-badge">{item.brand}</span>}
+              </div>
 
-              {nutrientEntries.length > 0 ? (
-                <ul className="nutrient-list">
-                  {nutrientEntries.map(([k, v]) => {
-                    const display = v === null || v === undefined
-                      ? '—'
-                      : (typeof v === 'object' ? JSON.stringify(v) : String(v));
-                    return (
-                      <li key={k}>
-                        <strong>{formatLabel(k)}:</strong> {display}{unitForKey(k)}
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <p>Aucune information nutritionnelle disponible pour ce résultat.</p>
+              {item.image && (
+                <div className="product-image-container">
+                  <img alt={item.name as string} src={String(item.image)} className="product-image" />
+                </div>
               )}
+
+              <div className="serving-info">
+                <Info size={16} /> <span>Portion: {String(item.serving_size || '100g')}</span>
+              </div>
+
+              <div className="nutrient-grid">
+                {nutrientEntries.map(([k, v]) => (
+                  <div key={k} className="nutrient-item">
+                    <span className="nutrient-label">{formatLabel(k)}</span>
+                    <span className="nutrient-value">
+                      {v === null ? '—' : String(v)}{unitForKey(k)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           );
         })}

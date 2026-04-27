@@ -1,10 +1,20 @@
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import "./css/chat.css";
+import { 
+  MessageCircle, 
+  Sparkles, 
+  Send, 
+  Dumbbell, 
+  Utensils, 
+  Moon, 
+  TrendingUp 
+} from "lucide-react";
 import UserInfo from "../components/UserInfo";
 import TodoList from "../components/TodoList";
 import EvolutionTab from "../components/EvolutionTab";
 
+// --- Types & Config ---
 type Message = {
   role: "user" | "assistant" | "system";
   content: string;
@@ -18,7 +28,6 @@ type StoredUser = {
   last_name?: string;
 };
 
-// URL du backend Flask
 const BACKEND_URL = "http://127.0.0.1:5000";
 
 const Chat: React.FC = () => {
@@ -27,14 +36,14 @@ const Chat: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
 
-  // New States for Dashboard
   const [userData, setUserData] = useState<any>(null);
   const [healthData, setHealthData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'sport' | 'nutrition' | 'sleep' | 'evolution'>('sport');
-  const [refreshKey, setRefreshKey] = useState(0); // To force reload of tabs
+  const [refreshKey, setRefreshKey] = useState(0);
   
   const chatBoxRef = useRef<HTMLDivElement>(null);
 
+  // --- Helpers ---
   const scrollToBottom = () => {
     if (chatBoxRef.current) {
       chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
@@ -56,6 +65,7 @@ const Chat: React.FC = () => {
     }
   };
 
+  // --- API Calls ---
   useEffect(() => {
     const uid = loadUserId();
     setUserId(uid);
@@ -67,7 +77,6 @@ const Chat: React.FC = () => {
 
   const fetchUserProfile = async (uid: number) => {
     try {
-      // Endpoint from profile.py: /profile
       const response = await axios.get(`${BACKEND_URL}/profile?user_id=${uid}`);
       if (response.data) {
         setUserData(response.data.user);
@@ -103,7 +112,6 @@ const Chat: React.FC = () => {
   };
 
   const sanitizeAssistantReply = (text: string) => {
-    // Simple basic cleaning
     return text.replace(/`{3}[\s\S]*?`{3}/g, " ").trim();
   };
 
@@ -137,49 +145,35 @@ const Chat: React.FC = () => {
       setMessages(prev => [...prev, assistantMessage]);
       await persistMessage(assistantMessage);
 
-      // If the reply implies data update (could be sophisticated), we could refresh tabs
-      // For now, only the dedicated button does it reliably or if user asks "updates".
-      // Let's stick to the button for explicit updates.
-
     } catch (error) {
       console.error(error);
-      setMessages(prev => [...prev, { role: "assistant", content: "Erreur de connexion à LM Studio." }]);
+      setMessages(prev => [...prev, { role: "assistant", content: "Erreur de connexion au serveur de chat." }]);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGenerateProgram = async () => {
-    if (!userId) {
-      alert("Veuillez vous connecter.");
-      return;
-    }
-
+    if (!userId) return;
     setIsLoading(true);
-    // Add a temporary system message to UI to show action
-    setMessages(prev => [...prev, { role: "system", content: "Génération du programme en cours... Veuillez patienter." } as Message]);
+    setMessages(prev => [...prev, { role: "system", content: "Génération du programme en cours..." } as Message]);
 
     try {
       const response = await axios.post(`${BACKEND_URL}/api/generate-program`, { user_id: userId });
       const data = response.data;
 
       if (data.success) {
-        // Add success message from AI
         const aiMessage: Message = {
           role: "assistant",
-          content: `✅ Programme mis à jour !\n\n${data.details || "Consultez les onglets ci-dessous pour voir votre nouveau programme."}`
+          content: `Programme mis à jour ! Consultez les onglets ci-dessous pour voir vos nouveaux objectifs.`
         };
-        setMessages(prev => [...prev.filter(m => m.content !== "Génération du programme en cours... Veuillez patienter."), aiMessage]);
+        setMessages(prev => [...prev.filter(m => !m.content.includes("Génération")), aiMessage]);
         persistMessage(aiMessage);
-
-        // Trigger tabs refresh
         setRefreshKey(prev => prev + 1);
-      } else {
-        throw new Error(data.error || "Erreur inconnue");
       }
     } catch (error) {
       console.error("Erreur génération programme:", error);
-      setMessages(prev => [...prev.filter(m => m.content !== "Génération du programme en cours... Veuillez patienter."), { role: "assistant", content: "❌ Une erreur est survenue lors de la génération du programme." } as Message]);
+      setMessages(prev => [...prev.filter(m => !m.content.includes("Génération")), { role: "assistant", content: "Une erreur est survenue lors de la mise à jour." } as Message]);
     } finally {
       setIsLoading(false);
     }
@@ -195,36 +189,33 @@ const Chat: React.FC = () => {
   };
 
   return (
-    <div className="main-page-container">
-      {/* Top Section: Chat + User Info */}
-      <div className="top-section">
-
-        {/* Left Column: Chat */}
-        <div className="chat-section">
-          <div className="chat-header-row">
-            <h1>Chat Santé 💬</h1>
+    <div className="chat-page-main">
+      <div className="top-layout">
+        
+        {/* BLOC GAUCHE : CHAT */}
+        <div className="chat-card-main">
+          <div className="chat-header-minimal">
+            <div className="title-with-icon">
+              <MessageCircle size={24} color="#10b981" />
+              <h1>Chat IA</h1>
+            </div>
           </div>
 
-          <div className="chat-box" ref={chatBoxRef}>
+          <div className="chat-display-area" ref={chatBoxRef}>
             {messages.filter(msg => msg.role !== "system" || msg.content.includes("Génération")).map((msg, index) => (
               <div key={index} className={`chat-message ${msg.role}`}>
-                <strong>{msg.role === "user" ? "Vous" : msg.role === "system" ? "Système" : "Coach IA"}:</strong>
+                <strong>{msg.role === "user" ? "Vous" : "Coach IA"}:</strong>
                 <div className="message-text">{renderMessageContent(msg.content)}</div>
               </div>
             ))}
-            {isLoading && <div className="chat-message assistant"><em>L'IA réfléchit...</em></div>}
+            {isLoading && <div className="chat-message assistant"><em>Le coach prépare une réponse...</em></div>}
           </div>
 
-          <div className="chat-controls">
-            <button
-              className="btn-program-recommend"
-              onClick={handleGenerateProgram}
-              disabled={isLoading}
-              title="Générer un programme personnalisé basé sur vos données"
-            >
-              ✨ Programme Recommandé
+          <div className="chat-input-section">
+            <button className="btn-magic-program" onClick={handleGenerateProgram} disabled={isLoading}>
+              <Sparkles size={16} /> Programme Recommandé
             </button>
-            <div className="chat-input-row">
+            <div className="input-wrapper-premium">
               <input
                 type="text"
                 value={input}
@@ -233,29 +224,37 @@ const Chat: React.FC = () => {
                 placeholder="Posez votre question santé..."
                 disabled={isLoading}
               />
-              <button onClick={handleSend} disabled={isLoading} className="btn-send">
-                Envoyer
+              <button onClick={handleSend} disabled={isLoading} className="send-btn-modern">
+                <Send size={18} />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Right Column: User Info */}
-        <div className="user-info-section">
+        {/* BLOC DROITE : PROFIL */}
+        <div className="profile-sidebar-card">
           <UserInfo user={userData} healthData={healthData} />
         </div>
       </div>
 
-      {/* Bottom Section: Tabs */}
-      <div className="bottom-section">
-        <div className="tabs-navigation">
-          <button className={`tab ${activeTab === 'sport' ? 'active' : ''}`} onClick={() => setActiveTab('sport')}>🏃 Sport</button>
-          <button className={`tab ${activeTab === 'nutrition' ? 'active' : ''}`} onClick={() => setActiveTab('nutrition')}>🥗 Alimentation</button>
-          <button className={`tab ${activeTab === 'sleep' ? 'active' : ''}`} onClick={() => setActiveTab('sleep')}>😴 Sommeil</button>
-          <button className={`tab ${activeTab === 'evolution' ? 'active' : ''}`} onClick={() => setActiveTab('evolution')}>📊 Évolution</button>
+      {/* SECTION BASSE : ONGLETS */}
+      <div className="dashboard-bottom-card">
+        <div className="dashboard-tabs">
+          <button className={`tab-btn ${activeTab === 'sport' ? 'active' : ''}`} onClick={() => setActiveTab('sport')}>
+            <Dumbbell size={18} /> Sport
+          </button>
+          <button className={`tab-btn ${activeTab === 'nutrition' ? 'active' : ''}`} onClick={() => setActiveTab('nutrition')}>
+            <Utensils size={18} /> Alimentation
+          </button>
+          <button className={`tab-btn ${activeTab === 'sleep' ? 'active' : ''}`} onClick={() => setActiveTab('sleep')}>
+            <Moon size={18} /> Sommeil
+          </button>
+          <button className={`tab-btn ${activeTab === 'evolution' ? 'active' : ''}`} onClick={() => setActiveTab('evolution')}>
+            <TrendingUp size={18} /> Évolution
+          </button>
         </div>
 
-        <div className="tab-content-area">
+        <div className="tab-render-area">
           {activeTab === 'sport' && <TodoList key={`sport-${refreshKey}`} taskType="sport" userId={userId} />}
           {activeTab === 'nutrition' && <TodoList key={`nutrition-${refreshKey}`} taskType="nutrition" userId={userId} />}
           {activeTab === 'sleep' && <TodoList key={`sleep-${refreshKey}`} taskType="sleep" userId={userId} />}

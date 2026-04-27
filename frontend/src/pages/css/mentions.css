@@ -1,0 +1,123 @@
+.mentions-page {
+  background-color: #f8fafc;
+  min-height: 100vh;
+  padding: 80px 20px;
+  font-family: 'Inter', sans-serif;
+}
+
+.mentions-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.mentions-header {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.mentions-header h1 {
+  font-size: 2.5rem;
+  color: #1e293b;
+  margin-bottom: 10px;
+  font-weight: 800;
+}
+
+.mentions-header p {
+  color: #64748b;
+  font-size: 1.1rem;
+}
+
+.mentions-card {
+  background: white;
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+  border: 1px solid #f1f5f9;
+}
+
+.mentions-section {
+  margin-bottom: 40px;
+}
+
+.mentions-section:last-child {
+  margin-bottom: 0;
+}
+
+.mentions-section h2 {
+  color: #10b981; /* Ton vert GoodLife */
+  font-size: 1.4rem;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+}
+
+.mentions-section p {
+  color: #475569;
+  line-height: 1.7;
+  margin-bottom: 15px;
+}
+
+.mentions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  background: #f8fafc;
+  padding: 25px;
+  border-radius: 16px;
+  margin-top: 20px;
+}
+
+.grid-item span {
+  display: block;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.grid-item p {
+  margin: 0;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.alert-box {
+  background: #fff1f2;
+  border-left: 4px solid #f43f5e;
+  padding: 20px;
+  border-radius: 12px;
+  margin-top: 20px;
+}
+
+.alert-box strong {
+  color: #be123c;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.alert-box p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #9f1239;
+}
+
+.mentions-legales-page {
+  min-height: 100vh;
+  width: 100%;
+  background: linear-gradient(180deg, #0a1628 0%, #0d1f3c 50%, #0a1628 100%);
+  color: #e2e8f0;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  padding-bottom: 80px;
+  padding-top: 60px;
+  position: relative;
+  z-index: 0;
+}
+
+.mentions-legales-hero {
+  background: linear-gradient(135deg, #0a1628 0%, #0f2340 60%, #0a1628 100%);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+  padding: 64px 24px 48px;
+  text-align: center;
+}

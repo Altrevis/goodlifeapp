@@ -10,8 +10,9 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     try {
-      const response = await fetch('http://localhost:5000/api/user/login', {
+      const response = await fetch('http://127.0.0.1:5000/api/user/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -22,15 +23,14 @@ const Login: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
         localStorage.setItem('user', JSON.stringify(data.user));
-        // Dispatch custom event to update App state
         window.dispatchEvent(new Event('authChange'));
         navigate('/');
       } else {
         const errorData = await response.json();
-        setError(errorData.error);
+        setError(errorData.error || 'Identifiants incorrects');
       }
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError('Impossible de contacter le serveur. Vérifiez que Python tourne.');
     }
   };
 

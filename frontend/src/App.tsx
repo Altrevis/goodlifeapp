@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from "react-router-dom";
-import "./App.css";
+import { Sparkles, LogOut, User, Apple, Moon, MessageSquare, Home as HomeIcon } from 'lucide-react';
+import "./pages/css/App.css";
 import Home from "./pages/home";
 import Login from "./pages/login";
 import Register from "./pages/register";
@@ -8,76 +9,43 @@ import Nutrition from "./pages/nutrition";
 import Chat from "./pages/chat";
 import Sleep from "./pages/sleep";
 import ProfilePage from "./pages/profile";
+import MentionsLegales from "./pages/MentionsLegales";
 
 const App: React.FC = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    const user = localStorage.getItem("user");
-    if (user) {
-      try {
-        const userData = JSON.parse(user);
-        if (userData && userData.first_name) return true;
-      } catch (e) {}
-    }
-    return false;
-  });
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState("");
 
-  const [userName, setUserName] = useState(() => {
+  const checkAuth = () => {
     const user = localStorage.getItem("user");
     if (user) {
       try {
         const userData = JSON.parse(user);
-        if (userData && userData.first_name) return userData.first_name;
-      } catch (e) {}
+        if (userData && userData.first_name) {
+          setIsLoggedIn(true);
+          setUserName(userData.first_name);
+          return;
+        }
+      } catch (e) {
+        localStorage.removeItem("user");
+      }
     }
-    return "";
-  });
+    setIsLoggedIn(false);
+    setUserName("");
+  };
 
   useEffect(() => {
-    const checkAuth = () => {
-      const user = localStorage.getItem("user");
-      if (user) {
-        try {
-          const userData = JSON.parse(user);
-          if (userData && userData.first_name) {
-            setIsLoggedIn(true);
-            setUserName(userData.first_name);
-            return;
-          }
-        } catch (e) {
-          // Si le JSON est invalide (ex: "undefined"), on nettoie
-          localStorage.removeItem("user");
-        }
-      }
-      setIsLoggedIn(false);
-      setUserName("");
-    };
-
     checkAuth();
-
-    // Listen for storage changes (in case of logout from another tab)
-    const handleStorageChange = () => {
-      checkAuth();
-    };
-
-    // Listen for custom auth event
-    const handleAuthChange = () => {
-      checkAuth();
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('authChange', handleAuthChange);
-
+    window.addEventListener('storage', checkAuth);
+    window.addEventListener('authChange', checkAuth);
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('authChange', handleAuthChange);
+      window.removeEventListener('storage', checkAuth);
+      window.removeEventListener('authChange', checkAuth);
     };
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("user");
-    setIsLoggedIn(false);
-    setUserName("");
-    // Dispatch custom event to update any listeners
+    checkAuth();
     window.dispatchEvent(new Event('authChange'));
   };
 
@@ -85,55 +53,50 @@ const App: React.FC = () => {
     <Router>
       <nav className="navbar">
         <Link to="/" className="nav-logo">
-          🌟 GoodLife
+          <Sparkles size={24} color="#10b981" style={{ marginRight: '8px' }} />
+          GoodLife
         </Link>
         <ul className="nav-menu">
           {isLoggedIn ? (
             <>
-              <li>
-                <Link to="/">Accueil</Link>
-              </li>
-              <li>
-                <Link to="/nutrition">Nutrition</Link>
-              </li>
-              <li>
-                <Link to="/sleep">Sommeil</Link>
-              </li>
-              <li>
-                <Link to="/profile">Profil</Link>
-              </li>
-              <li>
-                <Link to="/chat">Chat IA</Link>
-              </li>
-              <li className="user-info">
-                👤 {userName}
-                <button onClick={handleLogout} className="logout-btn">
-                  Déconnexion
+              <li><Link to="/"><HomeIcon size={18} /> Accueil</Link></li>
+              <li><Link to="/nutrition"><Apple size={18} /> Nutrition</Link></li>
+              <li><Link to="/sleep"><Moon size={18} /> Sommeil</Link></li>
+              <li><Link to="/chat"><MessageSquare size={18} /> Chat IA</Link></li>
+              <li className="nav-profile-wrapper">
+                <Link to="/profile" className="nav-link">
+                  <div className="nav-avatar-placeholder">
+                    <User size={18} color="#10b981" />
+                  </div>
+                  <span style={{ marginLeft: '8px' }}>{userName}</span>
+                </Link>
+                <button onClick={handleLogout} className="logout-btn-icon" title="Déconnexion">
+                  <LogOut size={18} />
                 </button>
               </li>
             </>
           ) : (
             <>
-              <li>
-                <Link to="/login">Connexion</Link>
-              </li>
-              <li>
-                <Link to="/register">Inscription</Link>
-              </li>
+              <li><Link to="/login">Connexion</Link></li>
+              <li><Link to="/register" className="explorer-btn" style={{ marginTop: 0 }}>S'ouvrir un compte</Link></li>
             </>
           )}
         </ul>
       </nav>
 
-      <Routes>
-        <Route path="/" element={isLoggedIn ? <Home /> : <Navigate to="/login" />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/nutrition" element={isLoggedIn ? <Nutrition /> : <Navigate to="/login" />} />
-        <Route path="/chat" element={isLoggedIn ? <Chat /> : <Navigate to="/login" />} />
-        <Route path="/sleep" element={isLoggedIn ? <Sleep /> : <Navigate to="/login" />} />
-        <Route path="/profile" element={isLoggedIn ? <ProfilePage /> : <Navigate to="/login" />} />
-      </Routes>
+      <div className="App">
+        <Routes>
+          <Route path="/" element={isLoggedIn ? <Home /> : <Navigate to="/login" />} />
+          <Route path="/login" element={!isLoggedIn ? <Login /> : <Navigate to="/" />} />
+          <Route path="/register" element={!isLoggedIn ? <Register /> : <Navigate to="/" />} />
+          <Route path="/nutrition" element={isLoggedIn ? <Nutrition /> : <Navigate to="/login" />} />
+          <Route path="/chat" element={isLoggedIn ? <Chat /> : <Navigate to="/login" />} />
+          <Route path="/sleep" element={isLoggedIn ? <Sleep /> : <Navigate to="/login" />} />
+          <Route path="/profile" element={isLoggedIn ? <ProfilePage /> : <Navigate to="/login" />} />
+          {/* Route publique — pas besoin d'être connecté */}
+          <Route path="/legal" element={<MentionsLegales />} />
+        </Routes>
+      </div>
     </Router>
   );
 };

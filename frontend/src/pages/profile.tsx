@@ -88,7 +88,7 @@ const ProfilePage: React.FC = () => {
 
   const fetchActivities = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:5000/profile/activities`);
+      const response = await fetch(`http://127.0.0.1:5000/profile/activities`);
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.activities) {
@@ -103,7 +103,7 @@ const ProfilePage: React.FC = () => {
   const fetchProfile = async (id: number) => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/profile?user_id=${id}`);
+      const response = await fetch(`http://127.0.0.1:5000/profile?user_id=${id}`);
       
       if (!response.ok) {
         throw new Error('Erreur lors de la récupération du profil');
@@ -149,7 +149,7 @@ const ProfilePage: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch(`http://localhost:5000/profile/calculate-calories`, {
+      const response = await fetch(`http://127.0.0.1:5000/profile/calculate-calories`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -208,7 +208,7 @@ const ProfilePage: React.FC = () => {
     };
 
     try {
-      const response = await fetch(`http://localhost:5000/profile/health`, {
+      const response = await fetch(`http://127.0.0.1:5000/profile/health`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

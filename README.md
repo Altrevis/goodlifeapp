@@ -28,7 +28,12 @@ L'application **GoodLife** vise à offrir un suivi personnalisé du bien-être e
 ✅ **Activité sportive** : Accès aux routines et exercices via API Wger  
 ✅ **Calcul IMC** : Évaluation du poids et catégorisation  
 ✅ **Chat avec IA** : Interface conversationnelle avec LM Studio  
-✅ **Dashboard** : Visualisation des données avec graphiques (React Chart.js)
+✅ **Dashboard** : Visualisation des données avec graphiques (React Chart.js)  
+✅ **Profil utilisateur** : Gestion des données de santé (poids, taille, fréquence cardiaque, pas)  
+✅ **Calcul de calories brûlées** : Estimation par activité et durée via API Ninjas  
+✅ **Todo List** : Gestion des tâches sportives, nutritionnelles et de sommeil  
+✅ **Générateur de programme IA** : Programme sportif et nutritionnel personnalisé via LM Studio  
+✅ **Mentions légales** : Page légale accessible sans connexion
 
 ---
 
@@ -49,21 +54,25 @@ L'application **GoodLife** vise à offrir un suivi personnalisé du bien-être e
 **Structure** :
 ```
 backend/
-├── app.py                  # Point d'entrée principal
-├── requirements.txt        # Dépendances Python
+├── app.py                      # Point d'entrée principal
+├── requirements.txt            # Dépendances Python
 ├── api/
 │   ├── __init__.py
-│   ├── auth.py            # Routes d'authentification
-│   ├── body_ext.py        # Calcul IMC
-│   ├── db_config.py       # Configuration base de données
-│   ├── main.py            # Route de test + init DB
-│   ├── models.py          # Modèles utilisateur
-│   ├── nutrition.py       # Routes nutrition (OpenFoodFacts)
-│   ├── sleep.py           # Routes sommeil + score
-│   ├── sport.py           # Routes sport (Wger API)
-│   └── users.py           # Routes utilisateurs
+│   ├── auth.py                # Routes d'authentification
+│   ├── body_ext.py            # Calcul IMC
+│   ├── calories_burned.py     # Calcul calories brûlées (API Ninjas)
+│   ├── db_config.py           # Configuration base de données
+│   ├── main.py                # Route de test + init DB
+│   ├── models.py              # Modèles utilisateur
+│   ├── nutrition.py           # Routes nutrition (OpenFoodFacts)
+│   ├── profile.py             # Routes profil + données de santé
+│   ├── program_generator.py   # Génération de programme IA
+│   ├── sleep.py               # Routes sommeil + score
+│   ├── sport.py               # Routes sport (Wger API)
+│   ├── tasks.py               # Gestion des todolists
+│   └── users.py               # Routes utilisateurs
 └── db/
-    └── bienetre.sql       # Structure de la base de données
+    └── bienetre.sql           # Structure de la base de données
 ```
 
 ---
@@ -88,14 +97,21 @@ frontend/
 │   └── robots.txt
 ├── src/
 │   ├── pages/
-│   │   ├── login.tsx          # Page de connexion
-│   │   ├── register.tsx       # Page d'inscription
-│   │   ├── home.tsx           # Page d'accueil
-│   │   ├── chat.tsx           # Interface chat IA
-│   │   ├── graph.tsx          # Visualisations graphiques
-│   │   ├── nutrition.tsx      # Recherche nutritionnelle
-│   │   ├── sleep.tsx          # Suivi du sommeil
-│   │   └── css/               # Styles CSS des pages
+│   │   ├── login.tsx              # Page de connexion
+│   │   ├── register.tsx           # Page d'inscription
+│   │   ├── home.tsx               # Page d'accueil
+│   │   ├── chat.tsx               # Interface chat IA
+│   │   ├── graph.tsx              # Visualisations graphiques
+│   │   ├── nutrition.tsx          # Recherche nutritionnelle
+│   │   ├── profile.tsx            # Profil + données de santé + calories
+│   │   ├── sleep.tsx              # Suivi du sommeil
+│   │   ├── MentionsLegales.tsx    # Page mentions légales
+│   │   └── css/                   # Styles CSS des pages
+│   ├── components/
+│   │   ├── EvolutionTab.tsx       # Onglet d'évolution des données
+│   │   ├── TodoList.tsx           # Composant todo list
+│   │   ├── UserInfo.tsx           # Composant infos utilisateur
+│   │   └── css/                   # Styles CSS des composants
 │   ├── App.tsx
 │   ├── index.tsx
 │   └── setupTests.ts
@@ -202,6 +218,63 @@ frontend/
 
 ---
 
+### 👤 Profil utilisateur
+
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| `GET` | `/api/profile/<user_id>` | Récupère le profil et les dernières données de santé |
+| `PUT` | `/api/profile/<user_id>` | Met à jour les données de santé |
+
+---
+
+### 🔥 Calories brûlées (API Ninjas)
+
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| `GET` | `/calories/activities` | Liste de toutes les activités sportives disponibles |
+| `POST` | `/calories/calculate` | Calcule les calories brûlées pour une activité et une durée |
+
+**Exemple de payload POST** :
+```json
+{
+  "activity": "running",
+  "duration_minutes": 30,
+  "weight_kg": 70
+}
+```
+
+---
+
+### ✅ Todo List
+
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| `GET` | `/sport/tasks` | Récupère les tâches sportives de l'utilisateur |
+| `POST` | `/sport/tasks` | Crée une nouvelle tâche sportive |
+| `GET` | `/nutrition/tasks` | Récupère les tâches nutritionnelles |
+| `POST` | `/nutrition/tasks` | Crée une nouvelle tâche nutritionnelle |
+| `GET` | `/sleep/tasks` | Récupère les tâches de sommeil |
+| `POST` | `/sleep/tasks` | Crée une nouvelle tâche de sommeil |
+
+---
+
+### 🤖 Générateur de programme IA
+
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| `POST` | `/api/generate-program` | Génère un programme sportif et nutritionnel personnalisé via LM Studio |
+
+**Exemple de payload** :
+```json
+{
+  "user_id": 1
+}
+```
+
+**Réponse** : Programme JSON structuré avec objectifs, planning hebdomadaire sport, plan nutritionnel et conseils personnalisés.
+
+---
+
 ### ⚖️ Calcul IMC
 
 | Méthode | Route | Description |
@@ -253,6 +326,8 @@ frontend/
 | `ai_predictions` | Prédictions générées par l'IA |
 | `api_sources` | Configuration des sources API externes |
 | `messages` | Historique du chat IA (role, content, created_at) |
+| `tasks` | Tâches todo (sport, nutrition, sommeil) par utilisateur |
+| `task_completions` | Historique des complétions de tâches |
 
 ---
 
@@ -332,12 +407,12 @@ npm start
 | **Séance 2** | 22 oct. 2025 | Base de données MySQL | ✅ Terminé |
 | **Séance 3** | 12 nov. 2025 | Connexion API externe | ✅ Terminé |
 | **Séance 4** | 03 déc. 2025 | Analyses simples | ✅ Terminé |
-| **Séance 5** | 07 jan. 2026 | Graphiques (Recharts) | 🟡 En cours |
-| **Séance 6** | 08 jan. 2026 | Début IA (ML simple) | 📌 À venir |
-| **Séance 7** | 28 jan. 2026 | IA intégrée au backend | 📌 À venir |
-| **Séance 8** | 11 mar. 2026 | Conseils personnalisés | 📌 À venir |
-| **Séance 9** | 01 avr. 2026 | Frontend avancé | 📌 À venir |
-| **Séance 10** | 12 mai 2026 | Optimisation & finalisation | 📌 À venir |
+| **Séance 5** | 07 jan. 2026 | Graphiques (Recharts) | ✅ Terminé |
+| **Séance 6** | 08 jan. 2026 | Début IA (ML simple) | ✅ Terminé |
+| **Séance 7** | 28 jan. 2026 | IA intégrée au backend | ✅ Terminé |
+| **Séance 8** | 11 mar. 2026 | Conseils personnalisés | ✅ Terminé |
+| **Séance 9** | 01 avr. 2026 | Frontend avancé | ✅ Terminé |
+| **Séance 10** | 12 mai 2026 | Optimisation & finalisation | 🟡 En cours |
 | **Séance 11** | 13 mai 2026 | Bilan & présentation | 📌 À venir |
 
 ---
@@ -376,7 +451,8 @@ npm start
 |-----|-------|---------------|
 | **OpenFoodFacts** | Données nutritionnelles | https://world.openfoodfacts.org/data |
 | **Wger** | Exercices & routines sportives | https://wger.de/api/v2/ |
-| **LM Studio** | Chat IA (LLM local) | http://10.37.7.211:1234 |
+| **LM Studio** | Chat IA + Générateur de programme (LLM local) | http://127.0.0.1:1234 |
+| **API Ninjas** | Calcul de calories brûlées par activité | https://api-ninjas.com/api/caloriesburned |
 
 ---
 
@@ -430,4 +506,4 @@ set PORT=3001 && npm start
 
 ---
 
-**Dernière mise à jour** : 7 janvier 2026
+**Dernière mise à jour** : 4 mai 2026

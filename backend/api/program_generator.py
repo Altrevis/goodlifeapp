@@ -11,7 +11,7 @@ from .profile import get_profile
 program_gen_bp = Blueprint('program_gen', __name__)
 
 # URL LM Studio (hardcoded for now as in app.py)
-LM_STUDIO_URL = "http://10.37.6.153:1234/v1/chat/completions"
+LM_STUDIO_URL = "http://127.0.0.1:1234/v1/chat/completions"
 
 def get_user_data_internal(user_id):
     """Reuse logic to get user data for the prompt"""
@@ -100,11 +100,12 @@ def generate_program():
                 {"role": "system", "content": "Tu es un assistant JSON strict spécialisé UNIQUEMENT dans le sport, la nutrition et le bien-être. Tu ne réponds qu'avec du JSON valide. Tu respectes strictement les valeurs ENUM demandées : 'breakfast', 'lunch', 'dinner', 'snack' for meal_type."},
                 {"role": "user", "content": prompt}
             ],
-            "temperature": 0.4 # Reduced temperature for better adherence to JSON schema
+            "temperature": 0.4,
+            "max_tokens": 1500
         }
 
         # Call LM Studio
-        response = requests.post(LM_STUDIO_URL, json=payload, headers={"Content-Type": "application/json"}, timeout=120)
+        response = requests.post(LM_STUDIO_URL, json=payload, headers={"Content-Type": "application/json"}, timeout=300)
         response_data = response.json()
         
         content = response_data['choices'][0]['message']['content']

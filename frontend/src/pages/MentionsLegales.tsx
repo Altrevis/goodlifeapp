@@ -117,18 +117,28 @@ const MentionsLegales: React.FC = () => {
         {/* 01 — Éditeur */}
         <Section icon={<Shield size={20} color="#10b981" />} label="01 — Identité" title="Éditeur de l'application">
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
-            {[
-              ["Nom du projet", "GoodLife"],
-              ["Nature juridique", "Projet étudiant à titre non commercial"],
-              ["Établissement", "YNOV Campus, Montpellier"],
-              ["Responsable", "À compléter (étudiant référent)"],
-              ["Hébergement", "À préciser avant mise en production"],
-            ].map(([k, v]) => (
-              <tr key={k} style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                <td style={{ padding: "10px 12px", color: "#94a3b8", width: "40%", fontWeight: 500 }}>{k}</td>
-                <td style={{ padding: "10px 12px", color: "#cbd5e1" }}>{v}</td>
+            <tbody>
+              <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <td style={{ padding: "10px 12px", color: "#94a3b8", width: "40%", fontWeight: 500 }}>Nom du projet</td>
+                <td style={{ padding: "10px 12px", color: "#cbd5e1" }}>GoodLife</td>
               </tr>
-            ))}
+              <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <td style={{ padding: "10px 12px", color: "#94a3b8", width: "40%", fontWeight: 500 }}>Nature juridique</td>
+                <td style={{ padding: "10px 12px", color: "#cbd5e1" }}>Projet étudiant à titre non commercial</td>
+              </tr>
+              <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <td style={{ padding: "10px 12px", color: "#94a3b8", width: "40%", fontWeight: 500 }}>Établissement</td>
+                <td style={{ padding: "10px 12px", color: "#cbd5e1" }}>YNOV Campus, Montpellier</td>
+              </tr>
+              <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <td style={{ padding: "10px 12px", color: "#94a3b8", width: "40%", fontWeight: 500 }}>Responsable</td>
+                <td style={{ padding: "10px 12px", color: "#cbd5e1" }}>Ryan A.</td>
+              </tr>
+              <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <td style={{ padding: "10px 12px", color: "#94a3b8", width: "40%", fontWeight: 500 }}>Hébergement</td>
+                <td style={{ padding: "10px 12px", color: "#cbd5e1" }}>Local (Serveur de développement MAMP)</td>
+              </tr>
+            </tbody>
           </table>
           <Callout color="green">
             GoodLife est un projet académique. Il n'est pas exploité à des fins commerciales et n'est pas destiné à un usage médical professionnel.
@@ -226,16 +236,20 @@ const MentionsLegales: React.FC = () => {
             Pour toute question relative aux présentes mentions légales ou à la protection de vos données :
           </p>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
-            {[
-              ["E-mail", "contact@goodlife-app.fr"],
-              ["Délai de réponse", "Sous 30 jours ouvrés (exigence RGPD)"],
-              ["Autorité de contrôle", "CNIL — www.cnil.fr"],
-            ].map(([k, v]) => (
-              <tr key={k} style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                <td style={{ padding: "10px 12px", color: "#94a3b8", width: "40%", fontWeight: 500 }}>{k}</td>
-                <td style={{ padding: "10px 12px", color: "#cbd5e1" }}>{v}</td>
+            <tbody>
+              <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <td style={{ padding: "10px 12px", color: "#94a3b8", width: "40%", fontWeight: 500 }}>E-mail</td>
+                <td style={{ padding: "10px 12px", color: "#cbd5e1" }}>ryan.a@ynov.com</td>
               </tr>
-            ))}
+              <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <td style={{ padding: "10px 12px", color: "#94a3b8", width: "40%", fontWeight: 500 }}>Délai de réponse</td>
+                <td style={{ padding: "10px 12px", color: "#cbd5e1" }}>Sous 30 jours ouvrés (exigence RGPD)</td>
+              </tr>
+              <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <td style={{ padding: "10px 12px", color: "#94a3b8", width: "40%", fontWeight: 500 }}>Autorité de contrôle</td>
+                <td style={{ padding: "10px 12px", color: "#cbd5e1" }}>CNIL — www.cnil.fr</td>
+              </tr>
+            </tbody>
           </table>
         </Section>
 

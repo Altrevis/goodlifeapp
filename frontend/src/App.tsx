@@ -97,6 +97,19 @@ const App: React.FC = () => {
           <Route path="/legal" element={<MentionsLegales />} />
         </Routes>
       </div>
+
+      <footer style={{
+        textAlign: "center",
+        padding: "16px",
+        fontSize: "13px",
+        color: "#475569",
+        borderTop: "1px solid rgba(255,255,255,0.06)"
+      }}>
+        © 2026 GoodLife — Projet YNOV &nbsp;·&nbsp;
+        <Link to="/legal" style={{ color: "#10b981", textDecoration: "none" }}>
+          Mentions légales
+        </Link>
+      </footer>
     </Router>
   );
 };

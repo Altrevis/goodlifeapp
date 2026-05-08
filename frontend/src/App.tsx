@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Link, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from "react-router-dom";
 import { Sparkles, LogOut, User, Apple, Moon, MessageSquare, Home as HomeIcon } from 'lucide-react';
 import "./pages/css/App.css";
 import Home from "./pages/home";
@@ -11,9 +11,12 @@ import Sleep from "./pages/sleep";
 import ProfilePage from "./pages/profile";
 import MentionsLegales from "./pages/MentionsLegales";
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState("");
+  const [navPhoto, setNavPhoto] = useState<string | null>(null);
+  const location = useLocation();
+  const isDarkPage = location.pathname === "/legal";
 
   const checkAuth = () => {
     const user = localStorage.getItem("user");
@@ -23,6 +26,7 @@ const App: React.FC = () => {
         if (userData && userData.first_name) {
           setIsLoggedIn(true);
           setUserName(userData.first_name);
+          setNavPhoto(localStorage.getItem('profile_photo'));
           return;
         }
       } catch (e) {
@@ -31,6 +35,7 @@ const App: React.FC = () => {
     }
     setIsLoggedIn(false);
     setUserName("");
+    setNavPhoto(null);
   };
 
   useEffect(() => {
@@ -50,8 +55,8 @@ const App: React.FC = () => {
   };
 
   return (
-    <Router>
-      <nav className="navbar">
+    <>
+      <nav className={`navbar${isDarkPage ? " navbar-dark" : ""}`}>
         <Link to="/" className="nav-logo">
           <Sparkles size={24} color="#10b981" style={{ marginRight: '8px' }} />
           GoodLife
@@ -66,7 +71,10 @@ const App: React.FC = () => {
               <li className="nav-profile-wrapper">
                 <Link to="/profile" className="nav-link">
                   <div className="nav-avatar-placeholder">
-                    <User size={18} color="#10b981" />
+                    {navPhoto
+                      ? <img src={navPhoto} alt="profil" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+                      : <User size={18} color="#10b981" />
+                    }
                   </div>
                   <span style={{ marginLeft: '8px' }}>{userName}</span>
                 </Link>
@@ -84,7 +92,7 @@ const App: React.FC = () => {
         </ul>
       </nav>
 
-      <div className="App">
+      <div className={`App${isDarkPage ? " App-dark" : ""}`}>
         <Routes>
           <Route path="/" element={isLoggedIn ? <Home /> : <Navigate to="/login" />} />
           <Route path="/login" element={!isLoggedIn ? <Login /> : <Navigate to="/" />} />
@@ -97,21 +105,14 @@ const App: React.FC = () => {
           <Route path="/legal" element={<MentionsLegales />} />
         </Routes>
       </div>
-
-      <footer style={{
-        textAlign: "center",
-        padding: "16px",
-        fontSize: "13px",
-        color: "#475569",
-        borderTop: "1px solid rgba(255,255,255,0.06)"
-      }}>
-        © 2026 GoodLife — Projet YNOV &nbsp;·&nbsp;
-        <Link to="/legal" style={{ color: "#10b981", textDecoration: "none" }}>
-          Mentions légales
-        </Link>
-      </footer>
-    </Router>
+    </>
   );
 };
+
+const App: React.FC = () => (
+  <Router>
+    <AppContent />
+  </Router>
+);
 
 export default App;

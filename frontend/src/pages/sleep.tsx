@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Line } from "react-chartjs-2";
-import { Moon, Calendar, Star, Activity, Plus } from 'lucide-react';
+import { Moon, Calendar, Star, Activity, Plus, CheckCircle, XCircle } from 'lucide-react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -26,6 +26,8 @@ const Sleep: React.FC = () => {
   const [sleepData, setSleepData] = useState<SleepData[]>([]);
   const [formData, setFormData] = useState({ date: "", duration: "", quality: "" });
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"error" | "success">("error");
+  const [submitting, setSubmitting] = useState(false);
 
   const getUserId = (): number | null => {
     const userStr = localStorage.getItem('user');
@@ -59,9 +61,16 @@ const Sleep: React.FC = () => {
     if (userId) fetchSleepData();
   }, [userId]);
 
+  const showMessage = (text: string, type: "error" | "success") => {
+    setMessage(text);
+    setMessageType(type);
+    setTimeout(() => setMessage(""), 4000);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId) return;
+    if (!userId || submitting) return;
+    setSubmitting(true);
     try {
       const response = await fetch(`http://127.0.0.1:5000/api/sleep?user_id=${userId}`, {
         method: "POST",
@@ -75,8 +84,15 @@ const Sleep: React.FC = () => {
       if (response.ok) {
         setFormData({ date: "", duration: "", quality: "" });
         fetchSleepData();
+        showMessage("Nuit enregistrée avec succès !", "success");
+      } else {
+        showMessage("Erreur lors de l'enregistrement.", "error");
       }
-    } catch (error) { setMessage("Erreur de connexion"); }
+    } catch (error) {
+      showMessage("Impossible de contacter le serveur.", "error");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -103,7 +119,34 @@ const Sleep: React.FC = () => {
               <label><Star size={16} /> Qualité (1-10)</label>
               <input type="number" name="quality" value={formData.quality} onChange={(e) => setFormData({...formData, quality: e.target.value})} min="1" max="10" required />
             </div>
-            <button type="submit" className="card-link full-width">Enregistrer la nuit</button>
+            {message && (
+              <div style={{
+                marginTop: "10px",
+                padding: "8px 12px",
+                borderRadius: "8px",
+                fontSize: "13px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                background: messageType === "success" ? "#dcfce7" : "#fee2e2",
+                color: messageType === "success" ? "#16a34a" : "#dc2626",
+                border: `1px solid ${messageType === "success" ? "#86efac" : "#fca5a5"}`,
+              }}>
+                {messageType === "success"
+                  ? <CheckCircle size={16} />
+                  : <XCircle size={16} />
+                }
+                {message}
+              </div>
+            )}
+            <button
+              type="submit"
+              className="card-link full-width"
+              disabled={submitting}
+              style={{ opacity: submitting ? 0.6 : 1, cursor: submitting ? "not-allowed" : "pointer" }}
+            >
+              {submitting ? "Enregistrement..." : "Enregistrer la nuit"}
+            </button>
           </form>
         </div>
 

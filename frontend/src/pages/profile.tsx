@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { UserCircle, Mail, Calendar } from 'lucide-react';
 import './css/profile.css';
 
 interface UserProfile {
@@ -38,6 +39,30 @@ const ProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Photo de profil
+  const [photoUrl, setPhotoUrl] = useState<string | null>(
+    localStorage.getItem('profile_photo')
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // FileReader lit le fichier choisi et le convertit en base64
+    // (une longue suite de caractères qui représente l'image)
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      // On colle la photo dans le localStorage — le post-it du navigateur
+      localStorage.setItem('profile_photo', base64);
+      setPhotoUrl(base64);
+      // On prévient la navbar qu'il y a du nouveau
+      window.dispatchEvent(new Event('authChange'));
+    };
+    reader.readAsDataURL(file);
+  };
   
   // Calculateur de calories
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -247,12 +272,55 @@ const ProfilePage: React.FC = () => {
   return (
     <div className="profile-container">
       <div className="profile-header">
-        <h1>Mon Profil</h1>
+
+        {/* Input fichier invisible */}
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          style={{ display: 'none' }}
+          onChange={handlePhotoChange}
+        />
+
+        {/* Avatar cliquable */}
+        <div
+          className="profile-avatar-wrapper"
+          onClick={() => fileInputRef.current?.click()}
+          title="Changer la photo"
+        >
+          {photoUrl ? (
+            <img src={photoUrl} alt="Photo de profil" className="profile-avatar-img" />
+          ) : (
+            <div className="profile-avatar-initials">
+              {user.first_name[0]}{user.last_name[0]}
+            </div>
+          )}
+        </div>
+
+        {/* Séparateur vertical */}
+        <div className="profile-divider" />
+
+        {/* Infos utilisateur */}
         <div className="user-info">
-          <h2>{user.first_name} {user.last_name}</h2>
-          <p className="email">{user.email}</p>
-          {user.age && <p>Âge: {user.age} ans</p>}
-          {user.gender && <p>Sexe: {user.gender === 'male' ? 'Homme' : 'Femme'}</p>}
+          <div className="user-name-row">
+            <UserCircle size={22} color="#10b981" />
+            <h2>{user.first_name} {user.last_name}</h2>
+          </div>
+          <div className="user-detail-row">
+            <Mail size={14} color="#94a3b8" />
+            <p className="email">{user.email}</p>
+          </div>
+          {user.age && (
+            <div className="user-detail-row">
+              <Calendar size={14} color="#94a3b8" />
+              <p>{user.age} ans</p>
+            </div>
+          )}
+          {user.gender && (
+            <p className="user-gender">
+              {user.gender === 'male' ? 'Homme' : 'Femme'}
+            </p>
+          )}
         </div>
       </div>
 
@@ -291,7 +359,7 @@ const ProfilePage: React.FC = () => {
         </div>
 
         <div className="calories-calculator-section">
-          <h3>🔥 Calculateur de calories brûlées</h3>
+          <h3>Calculateur de calories brûlées</h3>
           <p className="calculator-description">
             Sélectionnez une activité sportive et sa durée pour calculer automatiquement les calories brûlées en fonction de votre poids.
           </p>

@@ -17,6 +17,8 @@ interface UserInfoProps {
 }
 
 const UserInfo: React.FC<UserInfoProps> = ({ user, healthData }) => {
+    const photo = localStorage.getItem('profile_photo');
+
     if (!user && !healthData) {
         return (
             <div className="user-info-container empty">
@@ -29,7 +31,10 @@ const UserInfo: React.FC<UserInfoProps> = ({ user, healthData }) => {
         <div className="user-info-container">
             <div className="user-header">
                 <div className="avatar-icon">
-                    <User size={28} color="#10b981" />
+                    {photo
+                        ? <img src={photo} alt="profil" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }} />
+                        : <User size={28} color="#10b981" />
+                    }
                 </div>
                 <span className="user-name">{user?.first_name} {user?.last_name}</span>
                 <span className="profile-tag">Profil Santé</span>

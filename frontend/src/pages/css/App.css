@@ -15,8 +15,28 @@ html, body {
   flex-direction: column;
   color: #334155;
   background-color: #f8fafc;
-  overflow-y: auto; 
+  overflow-y: auto;
   overflow-x: hidden;
+}
+
+.App-dark {
+  background-color: #0a1628 !important;
+}
+
+.navbar-dark {
+  background: rgba(10, 22, 40, 0.95) !important;
+  border-bottom: 1px solid rgba(16, 185, 129, 0.2) !important;
+  backdrop-filter: blur(10px);
+}
+
+.navbar-dark .nav-logo,
+.navbar-dark .nav-menu li a,
+.navbar-dark .nav-menu li span {
+  color: #e2e8f0 !important;
+}
+
+.navbar-dark .logout-btn-icon {
+  color: #94a3b8 !important;
 }
 
 .home-container,

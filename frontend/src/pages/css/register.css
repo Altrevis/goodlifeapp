@@ -1,5 +1,4 @@
-/* Page entière */
-.login-page {
+.register-page {
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -8,99 +7,107 @@
   padding: 20px;
 }
 
-/* Carte */
-.login-card {
+.register-card {
   background: white;
   border-radius: 16px;
-  padding: 2.5rem 2rem;
+  padding: 2.2rem 2rem;
   width: 100%;
-  max-width: 400px;
+  max-width: 480px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   border: 1px solid #f1f5f9;
 }
 
-/* Logo */
-.login-logo {
+.register-logo {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.2rem;
   font-family: 'Inter', sans-serif;
   font-size: 20px;
   font-weight: 700;
   color: #1e293b;
 }
 
-/* Titre */
-.login-title {
+.register-title {
   font-family: 'Lora', serif;
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   font-weight: 700;
   color: #1e293b;
   text-align: center;
   margin: 0 0 6px;
 }
 
-.login-subtitle {
+.register-subtitle {
   text-align: center;
   color: #94a3b8;
   font-size: 14px;
-  margin: 0 0 1.8rem;
+  margin: 0 0 1.5rem;
 }
 
-/* Formulaire */
-.login-form {
+.register-form {
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
+  gap: 1rem;
 }
 
-.login-field {
+/* Grille 2 colonnes */
+.register-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.register-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
-.login-field label {
+.register-field label {
   font-size: 13px;
   font-weight: 600;
   color: #475569;
 }
 
-/* Input avec icône */
-.login-input-wrapper {
+.register-input-wrapper {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   border: 1.5px solid #e2e8f0;
   border-radius: 8px;
-  padding: 10px 14px;
+  padding: 9px 12px;
   background: #f8fafc;
   transition: border-color 0.2s;
 }
 
-.login-input-wrapper:focus-within {
+.register-input-wrapper:focus-within {
   border-color: #10b981;
   background: white;
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.08);
 }
 
-.login-input-wrapper input {
+.register-input-wrapper input,
+.register-input-wrapper select {
   flex: 1;
   border: none;
   outline: none;
   background: transparent;
   font-size: 14px;
   color: #1e293b;
+  width: 100%;
 }
 
-.login-input-wrapper input::placeholder {
+.register-input-wrapper input::placeholder {
   color: #cbd5e1;
 }
 
-/* Message d'erreur */
-.login-error {
+.register-input-wrapper select {
+  cursor: pointer;
+  color: #1e293b;
+}
+
+.register-error {
   display: flex;
   align-items: center;
   gap: 7px;
@@ -112,8 +119,7 @@
   color: #dc2626;
 }
 
-/* Bouton */
-.login-btn {
+.register-btn {
   width: 100%;
   padding: 12px;
   background: #10b981;
@@ -127,30 +133,29 @@
   margin-top: 4px;
 }
 
-.login-btn:hover:not(:disabled) {
+.register-btn:hover:not(:disabled) {
   background: #059669;
   transform: translateY(-1px);
 }
 
-.login-btn:disabled {
+.register-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-/* Lien inscription */
-.login-footer {
+.register-footer {
   text-align: center;
-  margin-top: 1.4rem;
+  margin-top: 1.2rem;
   font-size: 13px;
   color: #94a3b8;
 }
 
-.login-footer a {
+.register-footer a {
   color: #10b981;
   font-weight: 600;
   text-decoration: none;
 }
 
-.login-footer a:hover {
+.register-footer a:hover {
   text-decoration: underline;
 }

@@ -239,45 +239,50 @@ def has_system_message_with_data(user_id):
 
 def consolidate_messages(messages):
     """
-    S'assure que les rôles alternent entre 'user' et 'assistant' après le message système.
-    Fusionne les messages consécutifs du même rôle.
+    Garde uniquement le dernier message système, tronque l'historique à 10 échanges
+    et s'assure que les rôles alternent entre 'user' et 'assistant'.
     """
     if not messages:
         return []
-    
-    consolidated = []
-    
-    # 1. Gérer les messages système (on les garde au début)
+
+    # 1. Ne garder que le dernier message système (le plus récent/à jour)
     system_messages = [m for m in messages if m.get("role") == "system"]
     other_messages = [m for m in messages if m.get("role") != "system"]
-    
-    if system_messages:
-        consolidated.append({
-            "role": "system",
-            "content": "\n".join([m.get("content", "") for m in system_messages])
-        })
-    
-    if not other_messages:
-        return consolidated
-        
-    # 2. Alterner les messages restants
+
+    # 2. Filtrer les messages vides ou placeholder
+    other_messages = [
+        m for m in other_messages
+        if m.get("content", "").strip() and m.get("content") != "(pas de réponse)"
+    ]
+
+    # 3. Limiter l'historique aux 20 derniers messages (10 échanges) pour éviter de dépasser le contexte
+    other_messages = other_messages[-20:]
+
+    # 4. Alterner les rôles (fusionner les messages consécutifs du même rôle)
+    consolidated_other = []
     current_role = None
     for msg in other_messages:
         role = msg.get("role")
         content = msg.get("content", "")
-        
         if role == current_role:
-            # Fusionner avec le précédent
-            consolidated[-1]["content"] += "\n" + content
+            consolidated_other[-1]["content"] += "\n" + content
         else:
-            consolidated.append({"role": role, "content": content})
+            consolidated_other.append({"role": role, "content": content})
             current_role = role
-            
-    # 3. Certains modèles (Mistral) exigent que le premier message après 'system' soit 'user'
-    # Si le premier message consolidé après le système est un assistant, on peut soit le supprimer,
-    # soit le fusionner dans le système, ou simplement espérer que le modèle l'accepte 
-    # une fois consolidé. Ici, on s'assure au moins de l'alternance.
-    
+
+    # 5. S'assurer que le premier message après system est 'user'
+    while consolidated_other and consolidated_other[0].get("role") != "user":
+        consolidated_other.pop(0)
+
+    consolidated = []
+    if system_messages:
+        # Utiliser uniquement le dernier message système
+        consolidated.append({
+            "role": "system",
+            "content": system_messages[-1].get("content", "")
+        })
+    consolidated.extend(consolidated_other)
+
     return consolidated
 
 
@@ -353,10 +358,7 @@ def proxy_chat():
                 if health_info.get("steps"):
                     confirm_parts.append(f"pas: {health_info['steps']}")
                 
-                if confirm_parts:
-                    confirm_msg = ", ".join(confirm_parts)
-                    system_content_parts.append(f"\nINSTRUCTION CRITIQUE: Vous DEVEZ impérativement commencer votre TOUTE PREMIÈRE réponse par : 'J'ai bien récupéré vos données ({confirm_msg}).' C'est une preuve de connexion technique. Ne l'oubliez jamais.")
-                else:
+                if not confirm_parts:
                     system_content_parts.append("\nINSTRUCTION: Invitez l'utilisateur à remplir son profil.")
                 
                 import time
@@ -394,12 +396,16 @@ def proxy_chat():
         # --- FIX: Consolider les messages pour assurer l'alternance des rôles ---
         payload["messages"] = consolidate_messages(messages)
 
+        # Limiter la longueur de réponse si non défini (accélère la génération)
+        if "max_tokens" not in payload:
+            payload["max_tokens"] = 512
+
         # Transfert de la requête vers LM Studio
         response = requests.post(
             LM_STUDIO_URL,
             json=payload,
             headers={"Content-Type": "application/json"},
-            timeout=60,
+            timeout=180,
         )
 
         if response.status_code == 200:

@@ -104,7 +104,7 @@ const MentionsLegales: React.FC = () => {
           maxWidth: "520px",
           margin: "0 auto 20px"
         }}>
-          Tout ce que vous devez savoir sur vos droits, la protection de vos données et les conditions d'utilisation de GoodLife.
+          Tout ce que vous devez savoir sur vos droits, la protection de vos données et les conditions d'utilisation de Sport & bien-être IA.
         </p>
         <p style={{ fontSize: "12px", color: "#475569" }}>
           Dernière mise à jour : avril 2026 · Application soumise au droit français
@@ -120,7 +120,7 @@ const MentionsLegales: React.FC = () => {
             <tbody>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
                 <td style={{ padding: "10px 12px", color: "#94a3b8", width: "40%", fontWeight: 500 }}>Nom du projet</td>
-                <td style={{ padding: "10px 12px", color: "#cbd5e1" }}>GoodLife</td>
+                <td style={{ padding: "10px 12px", color: "#cbd5e1" }}>Sport & bien-être IA</td>
               </tr>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
                 <td style={{ padding: "10px 12px", color: "#94a3b8", width: "40%", fontWeight: 500 }}>Nature juridique</td>
@@ -132,33 +132,33 @@ const MentionsLegales: React.FC = () => {
               </tr>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
                 <td style={{ padding: "10px 12px", color: "#94a3b8", width: "40%", fontWeight: 500 }}>Responsable</td>
-                <td style={{ padding: "10px 12px", color: "#cbd5e1" }}>Ryan A.</td>
+                <td style={{ padding: "10px 12px", color: "#cbd5e1" }}>Leo / Ryan / Alexandre</td>
               </tr>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
                 <td style={{ padding: "10px 12px", color: "#94a3b8", width: "40%", fontWeight: 500 }}>Hébergement</td>
-                <td style={{ padding: "10px 12px", color: "#cbd5e1" }}>Local (Serveur de développement MAMP)</td>
+                <td style={{ padding: "10px 12px", color: "#cbd5e1" }}>Local</td>
               </tr>
             </tbody>
           </table>
           <Callout color="green">
-            GoodLife est un projet académique. Il n'est pas exploité à des fins commerciales et n'est pas destiné à un usage médical professionnel.
+            Sport & bien-être IA est un projet académique. Il n'est pas exploité à des fins commerciales et n'est pas destiné à un usage médical professionnel.
           </Callout>
         </Section>
 
         {/* 02 — Santé */}
         <Section icon={<AlertTriangle size={20} color="#f59e0b" />} label="02 — Avertissement" title="Informations de santé">
           <p style={pStyle}>
-            Les contenus, recommandations et données affichés dans GoodLife sont fournis à titre informatif et éducatif uniquement. Ils ne constituent en aucun cas un avis médical, un diagnostic ou une prescription.
+            Les contenus, recommandations et données affichés dans Sport & bien-être IA sont fournis à titre informatif et éducatif uniquement. Ils ne constituent en aucun cas un avis médical, un diagnostic ou une prescription.
           </p>
           <Callout color="orange">
-            <strong>GoodLife n'est pas un dispositif médical.</strong> L'application n'est pas certifiée CE et ne saurait se substituer à une consultation auprès d'un professionnel de santé qualifié. En cas de doute sur votre état de santé, consultez un médecin.
+            <strong>Sport & bien-être IA n'est pas un dispositif médical.</strong> L'application n'est pas certifiée CE et ne saurait se substituer à une consultation auprès d'un professionnel de santé qualifié. En cas de doute sur votre état de santé, consultez un médecin.
           </Callout>
         </Section>
 
         {/* 03 — RGPD */}
         <Section icon={<Database size={20} color="#10b981" />} label="03 — Vie privée" title="Protection des données (RGPD)">
           <p style={pStyle}>
-            Conformément au RGPD (Règlement UE 2016/679) et à la loi Informatique et Libertés, GoodLife s'engage à protéger vos données personnelles.
+            Conformément au RGPD (Règlement UE 2016/679) et à la loi Informatique et Libertés, Sport & bien-être IA s'engage à protéger vos données personnelles.
           </p>
           <Callout color="orange">
             <strong>Données de santé sensibles :</strong> Conformément à l'article 9 du RGPD, vos données de santé bénéficient d'une protection renforcée et ne sont traitées qu'avec votre consentement explicite.
@@ -194,7 +194,7 @@ const MentionsLegales: React.FC = () => {
         {/* 04 — Cookies */}
         <Section icon={<Cookie size={20} color="#10b981" />} label="04 — Cookies" title="Gestion des cookies">
           <p style={pStyle}>
-            GoodLife utilise des cookies pour assurer le bon fonctionnement de l'application et mémoriser vos préférences.
+            Sport & bien-être IA utilise des cookies pour assurer le bon fonctionnement de l'application et mémoriser vos préférences.
           </p>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", marginTop: "12px" }}>
             <thead>

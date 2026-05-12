@@ -1,4 +1,4 @@
-# 🏃‍♂️ GoodLife App - Ydays Sport & Bien-être avec IA
+# 🏃‍♂️ Ydays Sport & Bien-être avec IA
 
 Application web de suivi et d'analyse du bien-être personnel avec intelligence artificielle intégrée. Ce projet combine un backend Flask (Python) avec un frontend React (TypeScript) pour offrir une expérience complète de gestion de la santé.
 
@@ -12,7 +12,7 @@ Application web de suivi et d'analyse du bien-être personnel avec intelligence 
 
 ## 🎯 Objectif du projet
 
-L'application **GoodLife** vise à offrir un suivi personnalisé du bien-être en combinant :
+L'application **Sport & bien-être IA** vise à offrir un suivi personnalisé du bien-être en combinant :
 
 - **Collecte de données** : Sommeil, nutrition, activité physique, données corporelles
 - **Analyse intelligente** : Calculs statistiques et prédictions via IA/ML

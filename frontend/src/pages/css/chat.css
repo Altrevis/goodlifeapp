@@ -80,6 +80,38 @@
   padding: 20px;
   border-top: 1px solid #f1f5f9;
   background: white;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.btn-magic-program {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  padding: 11px 20px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+}
+
+.btn-magic-program:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.btn-magic-program:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .input-wrapper-premium {

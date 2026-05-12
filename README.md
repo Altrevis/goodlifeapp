@@ -335,8 +335,8 @@ frontend/
 
 ### Prérequis
 
-- Python 3.8+
-- Node.js 16+
+- Python 3.10+
+- Node.js 18+
 - MySQL 8.0+
 - LM Studio (pour le chat IA)
 
@@ -367,8 +367,11 @@ db_config = {
 ```bash
 cd backend
 
+# Supprimer l'ancien venv si cloné
+rm -rf venv
+
 # Créer un environnement virtuel
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate  # Linux/Mac
 # venv\Scripts\activate  # Windows
 
@@ -412,7 +415,7 @@ npm start
 | **Séance 7** | 28 jan. 2026 | IA intégrée au backend | ✅ Terminé |
 | **Séance 8** | 11 mar. 2026 | Conseils personnalisés | ✅ Terminé |
 | **Séance 9** | 01 avr. 2026 | Frontend avancé | ✅ Terminé |
-| **Séance 10** | 12 mai 2026 | Optimisation & finalisation | 🟡 En cours |
+| **Séance 10** | 12 mai 2026 | Optimisation & finalisation | ✅ Terminé |
 | **Séance 11** | 13 mai 2026 | Bilan & présentation | 📌 À venir |
 
 ---
@@ -432,6 +435,7 @@ npm start
 - `react-router-dom==7.9.4` - Routing
 - `chart.js==4.5.1` - Graphiques
 - `react-chartjs-2==5.3.1` - Intégration Chart.js
+- `lucide-react==1.7.0` - Icônes
 - `typescript==4.9.5` - Typage statique
 
 ---
@@ -460,8 +464,8 @@ npm start
 
 - Le serveur backend doit être lancé avant le frontend
 - LM Studio doit être actif pour le chat IA
-- MySQL sur le port 3307 (non standard)
-- Les données de test sont créées automatiquement au premier lancement
+- MySQL sur le port **3306** (port standard)
+- Les données de test pour `sleep_data` sont créées automatiquement au premier lancement via `init_database()`
 
 ---
 
@@ -487,8 +491,8 @@ YNOV - Sport & Bien-être avec IA
 # Vérifier que MySQL est actif
 sudo systemctl status mysql
 
-# Tester la connexion
-mysql -u leo -p -P 3307 -h localhost bienetre
+# Tester la connexion (remplacez 'user' par votre utilisateur MySQL)
+mysql -u user -p -P 3306 -h localhost bienetre
 ```
 
 ### Port 3000 déjà utilisé (Frontend)
@@ -506,4 +510,4 @@ set PORT=3001 && npm start
 
 ---
 
-**Dernière mise à jour** : 4 mai 2026
+**Dernière mise à jour** : 12 mai 2026

@@ -1,6 +1,6 @@
 .todolist-container {
-  padding: 20px;
-  max-width: 800px;
+  padding: 0;
+  max-width: 100%;
   margin: 0 auto;
 }
 
@@ -18,7 +18,7 @@
 }
 
 .btn-add {
-  background: #4A90E2;
+  background: #10b981;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -27,10 +27,13 @@
   font-size: 14px;
   font-weight: 500;
   transition: background 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .btn-add:hover {
-  background: #357ABD;
+  background: #059669;
 }
 
 .add-form {
@@ -58,7 +61,7 @@
 }
 
 .btn-submit {
-  background: #28a745;
+  background: #10b981;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -70,7 +73,7 @@
 }
 
 .btn-submit:hover {
-  background: #218838;
+  background: #059669;
 }
 
 .tasks-list {
@@ -125,7 +128,7 @@
 }
 
 .badge {
-  background: #4A90E2;
+  background: #10b981;
   color: white;
   padding: 4px 12px;
   border-radius: 16px;
@@ -163,12 +166,12 @@
 }
 
 .btn-complete {
-  background: #28a745;
+  background: #10b981;
   color: white;
 }
 
 .btn-complete:hover {
-  background: #218838;
+  background: #059669;
   transform: scale(1.1);
 }
 
@@ -249,7 +252,7 @@
   padding: 8px;
   background: #fdfdfd;
   border-radius: 6px;
-  border-left: 3px solid #4A90E2;
+  border-left: 3px solid #10b981;
   font-size: 13px;
 }
 
@@ -381,12 +384,12 @@
 }
 
 .btn-confirm {
-  background: #28a745;
+  background: #10b981;
   color: white;
 }
 
 .btn-confirm:hover {
-  background: #218838;
+  background: #059669;
 }
 
 .btn-danger {
